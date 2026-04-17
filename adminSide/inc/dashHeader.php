@@ -1,4 +1,27 @@
+<?php
+require_once "../config.php";
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (isset($_SESSION['logged_account_id'])) {
+    $logged_account_id = (int) $_SESSION['logged_account_id'];
+    $staff_name_stmt = $link->prepare("SELECT staff_name FROM Staffs WHERE account_id = ?");
+
+    if ($staff_name_stmt) {
+        $staff_name_stmt->bind_param("i", $logged_account_id);
+        $staff_name_stmt->execute();
+        $staff_name_stmt->bind_result($current_staff_name);
+
+        if ($staff_name_stmt->fetch()) {
+            $_SESSION['logged_staff_name'] = $current_staff_name;
+        }
+
+        $staff_name_stmt->close();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
     <head>

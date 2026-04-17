@@ -9,33 +9,33 @@ require_once '../config.php';
 $currentDate = date('Y-m-d');
 
 // Calculate total revenue for today
-$totalRevenueTodayQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueTodayQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                            INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                            INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                            WHERE DATE(Bills.bill_time) = '$currentDate'";
 $totalRevenueTodayResult = mysqli_query($link, $totalRevenueTodayQuery);
 $totalRevenueTodayRow = mysqli_fetch_assoc($totalRevenueTodayResult);
-$totalRevenueToday = $totalRevenueTodayRow['total_revenue'];
+$totalRevenueToday = (float) $totalRevenueTodayRow['total_revenue'];
 
 // Calculate total revenue for this week (assuming week starts on Monday)
 $currentWeekStart = date('Y-m-d', strtotime('monday this week'));
-$totalRevenueThisWeekQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueThisWeekQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                              INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                              INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                              WHERE DATE(Bills.bill_time) >= '$currentWeekStart'";
 $totalRevenueThisWeekResult = mysqli_query($link, $totalRevenueThisWeekQuery);
 $totalRevenueThisWeekRow = mysqli_fetch_assoc($totalRevenueThisWeekResult);
-$totalRevenueThisWeek = $totalRevenueThisWeekRow['total_revenue'];
+$totalRevenueThisWeek = (float) $totalRevenueThisWeekRow['total_revenue'];
 
 // Calculate total revenue for this month
 $currentMonthStart = date('Y-m-01');
-$totalRevenueThisMonthQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueThisMonthQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                               INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                               INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                               WHERE DATE(Bills.bill_time) >= '$currentMonthStart'";
 $totalRevenueThisMonthResult = mysqli_query($link, $totalRevenueThisMonthQuery);
 $totalRevenueThisMonthRow = mysqli_fetch_assoc($totalRevenueThisMonthResult);
-$totalRevenueThisMonth = $totalRevenueThisMonthRow['total_revenue'];
+$totalRevenueThisMonth = (float) $totalRevenueThisMonthRow['total_revenue'];
 ?>
 
 
@@ -50,11 +50,11 @@ $totalRevenueThisMonth = $totalRevenueThisMonthRow['total_revenue'];
                 require_once '../config.php';
 
                 // Calculate total revenue
-                $totalRevenueQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+                $totalRevenueQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                                      INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id";
                 $totalRevenueResult = mysqli_query($link, $totalRevenueQuery);
                 $totalRevenueRow = mysqli_fetch_assoc($totalRevenueResult);
-                $totalRevenue = $totalRevenueRow['total_revenue'];
+                $totalRevenue = (float) $totalRevenueRow['total_revenue'];
                 ?>
                 <h2 style="text-align: center;">Revenue</h2>
                 <table class="table">
@@ -101,7 +101,6 @@ $totalRevenueThisMonth = $totalRevenueThisMonthRow['total_revenue'];
 </div>
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-// ...
 
 <?php
 $currentMonthStart = date('Y-m-01');
@@ -120,7 +119,7 @@ $cardQuery = "
     LEFT JOIN
         Menu m ON bi.item_id = m.item_id
     WHERE
-        b.payment_method LIKE 'Card'
+        LOWER(b.payment_method) = 'card'
         AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59';
 ";
 
@@ -135,7 +134,7 @@ $cashQuery = "
     LEFT JOIN
         Menu m ON bi.item_id = m.item_id
     WHERE
-        b.payment_method LIKE 'Cash'
+        LOWER(b.payment_method) = 'cash'
         AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59';
 ";
 
@@ -144,14 +143,14 @@ $cashResult = $link->query($cashQuery);
 
 if ($cardResult->num_rows > 0) {
     $cardRow = $cardResult->fetch_assoc();
-    $cardRevenue = $cardRow['card_revenue'];
+    $cardRevenue = (float) $cardRow['card_revenue'];
 } else {
     $cardRevenue = 0;
 }
 
 if ($cashResult->num_rows > 0) {
     $cashRow = $cashResult->fetch_assoc();
-    $cashRevenue = $cashRow['cash_revenue'];
+    $cashRevenue = (float) $cashRow['cash_revenue'];
 } else {
     $cashRevenue = 0;
 }
@@ -200,4 +199,3 @@ function paymentMethodCharts() {
   donutChart.draw(donutChartData, donutChartOptions);
 }
 </script>
-

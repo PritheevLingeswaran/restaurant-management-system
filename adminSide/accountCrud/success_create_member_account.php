@@ -1,62 +1,55 @@
 <?php
-// Assuming you have already established a database connection
 require_once "../config.php";
 
+$message = "Invalid request.";
+$iconClass = "fa-times-circle";
+$cardClass = "alert-danger";
+$bgColor = "#FFA7A7";
 
-// Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get the values from the form
-    $email = $_POST["email"];
-    $phone_number = $_POST["phone_number"];
-    $password = $_POST["password"];
-    $membership_id = isset($_POST["membership_id"]) ? $_POST["membership_id"] : null;
-    $staff_id = isset($_POST["staff_id"]) ? $_POST["staff_id"] : null;
+    $email = trim($_POST["email"] ?? "");
+    $phone_number = trim($_POST["phone_number"] ?? "");
+    $password = trim($_POST["password"] ?? "");
+    $register_date = trim($_POST["register_date"] ?? date("Y-m-d"));
+    $member_name = trim($_POST["member_name"] ?? "");
 
-    // Prepare the SQL query to check if the item_id already exists
-    $check_query = "SELECT email FROM Accounts WHERE email = ?";
-    $check_stmt = $conn->prepare($check_query);
-    $check_stmt->bind_param("s", $email);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();    
-    
-    // Check if the email already exists
-    if ($check_result->num_rows > 0) {
-        $message = "The email is already in use.<br>Please try again to choose a different email.";
-        $iconClass = "fa-times-circle";
-        $cardClass = "alert-danger";
-        $bgColor = "#FFA7A7"; // Custom background color for error
-    } else {
-            // Prepare the SQL query for insertion
-                $insert_query = "INSERT INTO Accounts (email, register_date, phone_number, password, membership_id, staff_id) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
-                $stmt = $conn->prepare($insert_query);
+    try {
+        db_begin_transaction_with_isolation($link, 'READ COMMITTED');
 
-                // Current date for register_date
-                $register_date = date("Y-m-d");
+        $check_query = "SELECT email FROM Accounts WHERE email = ?";
+        $check_stmt = $link->prepare($check_query);
+        $check_stmt->bind_param("s", $email);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
 
-                // Bind the parameters
-                $stmt->bind_param("ssssii", $email, $register_date, $phone_number, $password, $membership_id, $staff_id);
-
-        // Execute the query
-        if ($stmt->execute()) {
-            $message = "Account created successfully.";
-            $iconClass = "fa-check-circle";
-            $cardClass = "alert-success";
-            $bgColor = "#D4F4DD"; // Custom background color for success
-        } else {
-            $message = "Error: " . $insert_query . "<br>" . $conn->error;
-            $iconClass = "fa-times-circle";
-            $cardClass = "alert-danger";
-            $bgColor = "#FFA7A7"; // Custom background color for error
+        if ($check_result->num_rows > 0) {
+            throw new Exception("The email is already in use. Please choose a different email.");
         }
+        $check_stmt->close();
 
-        // Close the prepared statement
-        $stmt->close();
+        $insert_account_query = "INSERT INTO Accounts (email, register_date, phone_number, password) VALUES (?, ?, ?, ?)";
+        $account_stmt = $link->prepare($insert_account_query);
+        $account_stmt->bind_param("ssss", $email, $register_date, $phone_number, $password);
+        $account_stmt->execute();
+        $account_id = $account_stmt->insert_id;
+        $account_stmt->close();
+
+        $points = 0;
+        $insert_membership_query = "INSERT INTO Memberships (member_name, points, account_id) VALUES (?, ?, ?)";
+        $membership_stmt = $link->prepare($insert_membership_query);
+        $membership_stmt->bind_param("sii", $member_name, $points, $account_id);
+        $membership_stmt->execute();
+        $membership_stmt->close();
+
+        $link->commit();
+        $message = "Member account created successfully.";
+        $iconClass = "fa-check-circle";
+        $cardClass = "alert-success";
+        $bgColor = "#D4F4DD";
+    } catch (Throwable $e) {
+        $link->rollback();
+        $message = "Error: " . $e->getMessage();
     }
-
-    // Close the check statement and the connection
-    $check_stmt->close();
-    $conn->close();
 }
 ?>
 

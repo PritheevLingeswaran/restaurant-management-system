@@ -24,7 +24,7 @@ $input_password = $password_err = $password = "";
     <h3>Create New Account</h3>
     <p>Please fill in Account Information Properly</p>
 
-    <form method="POST" action="success_create_staff_Account.php" class="ht-600 w-50">
+    <form method="POST" action="success_create_staff_account.php" class="ht-600 w-50">
         
         <div class="form-group">
             <label for="account_id" class="form-label">Account ID:</label>

@@ -18,7 +18,7 @@ require_once '../posBackend/checkIfLoggedIn.php';
                     <form method="POST" action="#">
                         <div class="row">
                             <div class="col-md-6">
-                                <input required type="text" id="search" name="search" class="form-control" placeholder="Enter Reservation ID, Customer Name, Reservation Date (2023-09)">
+                                <input required type="text" id="search" name="search" class="form-control" placeholder="Enter Reservation ID, Customer Name, Reservation Date (2026-04)">
                             </div>
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-dark">Search</button>

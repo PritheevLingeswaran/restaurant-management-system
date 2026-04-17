@@ -100,7 +100,7 @@ $next_account_id = getNextAvailableAccountID($link);
 
         <div class="form-group">
             <label for="staff_id" class="form-label">Staff ID:</label>
-            <input min="1" type="number" name="staff_id" placeholder="1" class="form-control <?php echo $staff_id_err ? 'is-invalid' : ''; ?>" id="staff_id" required value="<?php echo $next_account_id; ?>" readonly><br>
+            <input min="1" type="number" name="staff_id" placeholder="1" class="form-control <?php echo $staff_id_err ? 'is-invalid' : ''; ?>" id="staff_id" required value="<?php echo $next_staff_id; ?>" readonly><br>
             <div class="invalid-feedback">
                 Please provide a valid staff_id.
             </div>

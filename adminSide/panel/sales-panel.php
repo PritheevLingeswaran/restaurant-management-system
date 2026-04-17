@@ -151,9 +151,9 @@ $currentMonth = date('Y-m');
                                         GROUP BY Menu.item_name
                                         ORDER BY total_quantity DESC
                                         LIMIT 10";
-            $topPurchasedItemsResult = mysqli_query($link, $topPurchasedItemsQuery);
+            $topPurchasedDrinksResult = mysqli_query($link, $topPurchasedDrinksQuery);
 
-            while ($row = mysqli_fetch_assoc($topPurchasedItemsResult)) {
+            while ($row = mysqli_fetch_assoc($topPurchasedDrinksResult)) {
                 echo "['{$row['item_name']}', {$row['total_quantity']}],";
             }
             ?>
@@ -184,9 +184,9 @@ $currentMonth = date('Y-m');
                                             GROUP BY Menu.item_name
                                             ORDER BY total_quantity DESC
                                             LIMIT 10";
-            $topPurchasedItemsResult = mysqli_query($link, $topPurchasedItemsQuery);
+            $topPurchasedMainDishesResult = mysqli_query($link, $topPurchasedMainDishesQuery);
 
-            while ($row = mysqli_fetch_assoc($topPurchasedItemsResult)) {
+            while ($row = mysqli_fetch_assoc($topPurchasedMainDishesResult)) {
                 echo "['{$row['item_name']}', {$row['total_quantity']}],";
             }
             ?>
@@ -217,9 +217,9 @@ $currentMonth = date('Y-m');
                                             GROUP BY Menu.item_name
                                             ORDER BY total_quantity DESC
                                             LIMIT 10";
-            $topPurchasedItemsResult = mysqli_query($link, $topPurchasedItemsQuery);
+            $topPurchasedSideSnacksResult = mysqli_query($link, $topPurchasedSideSnacksQuery);
 
-            while ($row = mysqli_fetch_assoc($topPurchasedItemsResult)) {
+            while ($row = mysqli_fetch_assoc($topPurchasedSideSnacksResult)) {
                 echo "['{$row['item_name']}', {$row['total_quantity']}],";
             }
             ?>

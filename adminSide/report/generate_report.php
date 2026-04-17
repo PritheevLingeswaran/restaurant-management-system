@@ -150,7 +150,7 @@ $pdf->Ln();
 $currentDate = date('Y-m-d');
 
 // Calculate total revenue for today
-$totalRevenueTodayQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueTodayQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                         INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                         INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                         WHERE DATE(Bills.bill_time) = '$currentDate'";
@@ -161,7 +161,7 @@ if (!$totalRevenueTodayResult) {
 }
 
 $totalRevenueTodayRow = mysqli_fetch_assoc($totalRevenueTodayResult);
-$totalRevenueToday = $totalRevenueTodayRow['total_revenue'];
+$totalRevenueToday = (float) $totalRevenueTodayRow['total_revenue'];
 
 // Comment out or remove the debugging echo statement
 // echo "Total Revenue Today: " . $totalRevenueToday;
@@ -174,7 +174,7 @@ $pdf->Ln();
 
 // Calculate total revenue for this week (assuming week starts on Monday)
 $currentWeekStart = date('Y-m-d', strtotime('monday this week'));
-$totalRevenueThisWeekQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueThisWeekQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                              INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                              INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                              WHERE DATE(Bills.bill_time) >= '$currentWeekStart'";
@@ -185,7 +185,7 @@ if (!$totalRevenueThisWeekResult) {
 }
 
 $totalRevenueThisWeekRow = mysqli_fetch_assoc($totalRevenueThisWeekResult);
-$totalRevenueThisWeek = $totalRevenueThisWeekRow['total_revenue'];
+$totalRevenueThisWeek = (float) $totalRevenueThisWeekRow['total_revenue'];
 
 // Weekly Report
 $pdf->ChapterTitle('Weekly Report');
@@ -195,7 +195,7 @@ $pdf->Ln();
 
 // Calculate total revenue for this month
 $currentMonthStart = date('Y-m-01');
-$totalRevenueThisMonthQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueThisMonthQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                               INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                               INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                               WHERE DATE(Bills.bill_time) >= '$currentMonthStart'";
@@ -206,7 +206,7 @@ if (!$totalRevenueThisMonthResult) {
 }
 
 $totalRevenueThisMonthRow = mysqli_fetch_assoc($totalRevenueThisMonthResult);
-$totalRevenueThisMonth = $totalRevenueThisMonthRow['total_revenue'];
+$totalRevenueThisMonth = (float) $totalRevenueThisMonthRow['total_revenue'];
 
 // Monthly Report
 $pdf->ChapterTitle('Monthly Report');
@@ -216,7 +216,7 @@ $pdf->Ln();
 
 // Calculate total revenue for this year
 $currentYear = date('Y');
-$totalRevenueThisYearQuery = "SELECT SUM(item_price * quantity) AS total_revenue FROM Bill_Items
+$totalRevenueThisYearQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                              INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                              INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                              WHERE YEAR(Bills.bill_time) = '$currentYear'";
@@ -227,7 +227,7 @@ if (!$totalRevenueThisYearResult) {
 }
 
 $totalRevenueThisYearRow = mysqli_fetch_assoc($totalRevenueThisYearResult);
-$totalRevenueThisYear = $totalRevenueThisYearRow['total_revenue'];
+$totalRevenueThisYear = (float) $totalRevenueThisYearRow['total_revenue'];
 
 // Yearly Report
 $pdf->ChapterTitle('Yearly Report');

@@ -1,86 +1,37 @@
 <?php include '../inc/dashHeader.php'; ?>
 <?php
-// Include config file
 require_once "../config.php";
 
-ob_start();
-$input_email = $email_err = $email = "";
-$input_register_date = $register_date_err = $register_date = "";
-$input_phone_number = $phone_number_err = $phone_number = "";
-$input_password = $password_err = $password = "";
-$input_membership_id = $membership_id = "";
-$input_staff_id = $staff_id = "";
+$email_err = $email = "";
+$register_date_err = $register_date = date('Y-m-d');
+$phone_number_err = $phone_number = "";
+$password_err = $password = "";
+$member_name_err = $member_name = "";
 
-// Processing form data when form is submitted
-if(isset($_POST['submit'])){
-    // Validate and sanitize email
-    if (empty($_POST['email'])) {
-        $email_err = 'Email is required';
-    } else {
-        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        if (!$email) {
-            $email_err = 'Invalid email format';
-        }
+if (isset($_POST['submit'])) {
+    $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL) ?: "";
+    if ($email === "") {
+        $email_err = 'Valid email is required.';
     }
 
-    // Validate and sanitize register date
-    // Validate and sanitize register date
-$register_date = $_POST['register_date'];
-$date_format = 'Y-m-d';
-
-if (!empty($register_date)) {
-    // Convert the register date to a DateTime object
-    $register_date_obj = new DateTime($register_date);
-
-    // Check if the date format is valid
-    if (!date_format($register_date_obj, $date_format)) {
-        $register_date_err = 'Invalid date format';
-    }
-}
-
-
-
-
-
-    // Validate and sanitize phone number
-    if (empty($_POST['phone_number'])) {
-        $phone_number_err = 'Phone number is required';
-    } else {
-        $phone_number = filter_input(INPUT_POST, 'phone_number', FILTER_SANITIZE_STRING);
+    $register_date = trim($_POST['register_date'] ?? '');
+    if ($register_date === "" || !DateTime::createFromFormat('Y-m-d', $register_date)) {
+        $register_date_err = 'Valid register date is required.';
     }
 
-    // Validate and sanitize password
-    if (empty($_POST['password'])) {
-        $password_err = 'Password is required';
-    } else {
-        $password = $_POST['password'];
+    $phone_number = trim($_POST['phone_number'] ?? '');
+    if ($phone_number === '') {
+        $phone_number_err = 'Phone number is required.';
     }
 
-    // Sanitize membership and staff IDs
-    $membership_id = $_POST['membership_id'] ?? null;
-    $staff_id = $_POST['staff_id'] ?? null;
+    $password = trim($_POST['password'] ?? '');
+    if ($password === '') {
+        $password_err = 'Password is required.';
+    }
 
-    // If there are no errors, insert the data into the database
-    if (empty($email_err) && empty($register_date_err) && empty($phone_number_err) && empty($password_err)) {
-        $conn = new mysqli("localhost", "root", "", "restaurantdb");
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
-
-$insert_query = "INSERT INTO Accounts  (email, register_date, phone_number, password, membership_id, staff_id) VALUES (?, ?, ?, ?, ?, ?)";
-$stmt = $conn->prepare($insert_query);
-$stmt->bind_param("ssssss", $email, $register_date, $phone_number, $password, $membership_id, $staff_id);
-
-        if ($stmt->execute()) {
-            // Success, redirect to success page or do something else
-            header("location: success_create_member_account.php");
-            exit();
-        } else {
-            echo "Error: " . $insert_query . "<br>" . $conn->error;
-        }
-
-        $stmt->close();
-        $conn->close();
+    $member_name = trim($_POST['member_name'] ?? '');
+    if ($member_name === '') {
+        $member_name_err = 'Member name is required.';
     }
 }
 ?>
@@ -97,15 +48,14 @@ $stmt->bind_param("ssssss", $email, $register_date, $phone_number, $password, $m
 <div class="wrapper">
     <h1>Boundless</h1>
     <h3>Create New Member Account</h3>
-    <p>Please fill in Account Information Properly</p>
+    <p>Create a customer account and membership profile in one step.</p>
 
     <form method="POST" action="success_create_member_account.php" class="ht-600 w-50">
         <div class="form-group">
             <label for="email" class="form-label">Email :</label>
-            <input type="text" name="email" class="form-control <?php echo !$email_Err ?:
-                'is-invalid'; ?>" id="email" required email="email" placeholder="johnny@dining.bar.com" value="<?php echo $email; ?>"><br>
-            <div id="validationServerFeedback" class="invalid-feedback">
-            Please provide a valid email.
+            <input type="text" name="email" class="form-control <?php echo $email_err ? 'is-invalid' : ''; ?>" id="email" required placeholder="johnny@dining.bar.com" value="<?php echo htmlspecialchars($email, ENT_QUOTES, 'UTF-8'); ?>"><br>
+            <div class="invalid-feedback">
+                <?php echo $email_err ?: 'Please provide a valid email.'; ?>
             </div>
         </div>
 
@@ -126,16 +76,19 @@ $stmt->bind_param("ssssss", $email, $register_date, $phone_number, $password, $m
         </div>
 
         <div class="form-group">
+            <label for="member_name">Member Name :</label>
+            <input placeholder="Pritheev" type="text" name="member_name" id="member_name" required class="form-control <?php echo $member_name_err ? 'is-invalid' : ''; ?>" value="<?php echo htmlspecialchars($member_name, ENT_QUOTES, 'UTF-8'); ?>"><br>
+            <div class="invalid-feedback">
+                <?php echo $member_name_err; ?>
+            </div>
+        </div>
+
+        <div class="form-group">
             <label for="password">Password :</label>
             <input placeholder="Cov42nkndca" type="password" name="password" id="password" required class="form-control <?php echo $password_err ? 'is-invalid' : ''; ?>"><br>
             <div class="invalid-feedback">
                 <?php echo $password_err; ?>
             </div>
-        </div>
-   
-        <div class="form-group">
-            <label for="member_id">Member ID:</label>
-            <input placeholder="1" min=1 type="number" name="member_id" id="member_id" class="form-control" value="<?php echo $member_id; ?>">
         </div>
 
         <div class="form-group">

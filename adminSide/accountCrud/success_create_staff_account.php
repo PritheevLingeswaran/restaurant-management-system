@@ -1,70 +1,55 @@
 <?php
-// Assuming you have already established a database connection
 require_once "../config.php";
 
+$message = "Invalid request.";
+$iconClass = "fa-times-circle";
+$cardClass = "alert-danger";
+$bgColor = "#FFA7A7";
 
-// Check if the form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get the values from the form
-    $account_id = $_POST["account_id"];
-    $email = $_POST["email"];
-    $register_date = $_POST["register_date"];
-    $phone_number = $_POST["phone_number"];
-    $password = $_POST["password"];
-    
-    // Prepare the SQL query to check if the account_id already exists
-    $check_account_query = "SELECT account_id FROM Accounts WHERE account_id = ?";
-    $check_account_stmt = $conn->prepare($check_account_query);
-    $check_account_stmt->bind_param("i", $account_id);
-    $check_account_stmt->execute();
-    $check_account_result = $check_account_stmt->get_result();
-    
-    // Prepare the SQL query to check if the email already exists
-    $check_email_query = "SELECT email FROM Accounts WHERE email = ?";
-    $check_email_stmt = $conn->prepare($check_email_query);
-    $check_email_stmt->bind_param("s", $email);
-    $check_email_stmt->execute();
-    $check_email_result = $check_email_stmt->get_result();
+    $account_id = (int) ($_POST["account_id"] ?? 0);
+    $email = trim($_POST["email"] ?? "");
+    $register_date = trim($_POST["register_date"] ?? "");
+    $phone_number = trim($_POST["phone_number"] ?? "");
+    $password = trim($_POST["password"] ?? "");
 
-    // Check if the account_id already exists
-    if ($check_account_result->num_rows > 0) {
-        $message = "Account ID already exists. Please choose another Account ID.";
-        $iconClass = "fa-times-circle";
-        $cardClass = "alert-danger";
-        $bgColor = "#FFA7A7"; // Custom background color for error
-    } elseif ($check_email_result->num_rows > 0) {
-        $message = "Email already exist for another an account. Please choose another email.";
-        $iconClass = "fa-times-circle";
-        $cardClass = "alert-danger";
-        $bgColor = "#FFA7A7"; // Custom background color for error   
-    } else {
-        // Prepare the SQL query for insertion
-        $insert_query = "INSERT INTO Accounts (account_id, email, register_date, phone_number, password) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($insert_query);
+    try {
+        $check_account_query = "SELECT account_id FROM Accounts WHERE account_id = ?";
+        $check_account_stmt = $link->prepare($check_account_query);
+        $check_account_stmt->bind_param("i", $account_id);
+        $check_account_stmt->execute();
+        $check_account_result = $check_account_stmt->get_result();
 
-        // Bind the parameters
-        $stmt->bind_param("issss", $account_id, $email, $register_date, $phone_number, $password);
+        $check_email_query = "SELECT email FROM Accounts WHERE email = ?";
+        $check_email_stmt = $link->prepare($check_email_query);
+        $check_email_stmt->bind_param("s", $email);
+        $check_email_stmt->execute();
+        $check_email_result = $check_email_stmt->get_result();
 
-        // Execute the query
-        if ($stmt->execute()) {
-            $message = "Account created successfully.";
-            $iconClass = "fa-check-circle";
-            $cardClass = "alert-success";
-            $bgColor = "#D4F4DD"; // Custom background color for success
-        } else {
-            $message = "Error: " . $stmt->error . " (Error code: " . $stmt->errno . ")";
-            $iconClass = "fa-times-circle";
-            $cardClass = "alert-danger";
-            $bgColor = "#FFA7A7"; // Custom background color for error
+        if ($check_account_result->num_rows > 0) {
+            throw new Exception("Account ID already exists. Please choose another Account ID.");
         }
 
-        // Close the prepared statement
-        $stmt->close();
-    }
+        if ($check_email_result->num_rows > 0) {
+            throw new Exception("Email already exists for another account. Please choose another email.");
+        }
 
-    // Close the check statement and the connection
-    $check_account_stmt->close();
-    $conn->close();
+        $insert_query = "INSERT INTO Accounts (account_id, email, register_date, phone_number, password) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $link->prepare($insert_query);
+        $stmt->bind_param("issss", $account_id, $email, $register_date, $phone_number, $password);
+        $stmt->execute();
+        $stmt->close();
+
+        $check_account_stmt->close();
+        $check_email_stmt->close();
+
+        $message = "Account created successfully.";
+        $iconClass = "fa-check-circle";
+        $cardClass = "alert-success";
+        $bgColor = "#D4F4DD";
+    } catch (Throwable $e) {
+        $message = "Error: " . $e->getMessage();
+    }
 }
 ?>
 
