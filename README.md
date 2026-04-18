@@ -70,6 +70,19 @@ The seeded demo data has been cleaned and updated for presentation purposes:
 - menu pricing has been updated to premium 5-star hotel pricing
 - the menu now includes Indian starters, tandoori dishes, curries, biryanis, naan and rice items, South Indian dishes, and premium desserts
 
+## Screenshots
+
+<p align="center">
+  <img src="images/homepage.png" width="400" alt="Homepage Screenshot"> &nbsp;
+  <img src="images/menu.png" width="400" alt="Menu Screenshot"> <br><br>
+  <img src="images/reservations.png" width="400" alt="Reservations Screenshot"> &nbsp;
+  <img src="images/tables.png" width="400" alt="Tables Screenshot"> <br><br>
+  <img src="images/revenue.png" width="400" alt="Revenue Screenshot"> &nbsp;
+  <img src="images/staff.png" width="400" alt="Staff Screenshot"> <br><br>
+  <img src="images/supplier.png" width="400" alt="Supplier Screenshot"> &nbsp;
+  <img src="images/customers.png" width="400" alt="Customers Screenshot">
+</p>
+
 ## Key Features
 
 ### Reservations
