@@ -14,25 +14,16 @@ require_once '../config.php'; // Include your database configuration
 </head>
 <body>
 
-<div class="container" style="text-align: center; width:100%; margin-top:3rem; margin-left: 2rem;  ">
-    <div id="POS-Content" class="row" >
-        <div class="row center-middle">
-          
-
-            <div class="col-md-15" style="margin-left: 17rem; margin-top: 0rem;max-height: 700px; overflow-y: auto;">
-                <div class="row justify-content-center">
+<div class="pos-layout-shell">
+    <div class="pos-layout-inner">
+        <div class="pos-table-stage">
+            <div class="row justify-content-center pos-table-grid">
                     <?php
                     // Fetch all tables from the database
                     $query = "SELECT * FROM Restaurant_Tables ORDER BY table_id;";
                     $result = mysqli_query($link, $query);
-                    $table = array("", "", "");
                     if ($result) {
-                        $table_count = 0;
-                    // ...
                     while ($row = mysqli_fetch_assoc($result)) {
-                        if ($table_count % 5 == 0) {
-                            echo '</div><div class="row justify-content-center">';
-                        }
                         $table_id = $row['table_id'];
                         $capacity = $row['capacity'];
                         
@@ -82,31 +73,29 @@ require_once '../config.php'; // Include your database configuration
                             $box_color = $hasPaymentTime ? 'rgb(23, 89, 74)' : $billItemColor;
                         } else {
                             $latestBillID = null;
-                            $box_color = 'gray'; // No bill for the table (gray)
+                            $box_color = 'rgb(23, 89, 74)'; // No bill means table is available
                         }
 
-                        echo '<div class="col-md-2 mb-3">';
+                        echo '<div class="col-md-2 col-sm-4 col-6 mb-4 d-flex justify-content-center">';
                         if ($reservationResult && mysqli_num_rows($reservationResult) > 0) {
                                 // The table is reserved for the selected time, so set the color accordingly
-                            echo '<a href="orderItem.php?bill_id=' . $latestBillID . '&table_id=' . $table_id . '"class="btn btn-primary btn-block btn-lg" style="color:black; '
-                                    . 'background-color: rgb(248, 222, 34);justify-content: center; align-items: center; display: flex; width: 9rem; height: 9rem;">'
+                            echo '<a href="orderItem.php?bill_id=' . $latestBillID . '&table_id=' . $table_id . '" class="btn btn-primary btn-block btn-lg pos-table-card" style="color:black; '
+                                    . 'background-color: rgb(248, 222, 34);">'
                                     . 'Table: ' . $table_id /* . '<br>Bill ID: ' . $latestBillID */. '<br>Capacity: ' . $capacity;
                         } else{
-                            echo '<a href="orderItem.php?bill_id=' . $latestBillID . '&table_id=' . $table_id . '"class="btn btn-primary btn-block btn-lg" '
-                                    . 'style="background-color: ' . $box_color . ';justify-content: center; align-items: center; display: flex; width: 9rem; height: 9rem;">Table:'
+                            echo '<a href="orderItem.php?bill_id=' . $latestBillID . '&table_id=' . $table_id . '" class="btn btn-primary btn-block btn-lg pos-table-card" '
+                                    . 'style="background-color: ' . $box_color . ';">Table:'
                                     . ' ' . $table_id /*. '<br>Bill ID: ' . $latestBillID */. '<br>Capacity: ' . $capacity;
                         }
                         echo '</a></div>';
-                        $table_count++;
                     }
-                    // ...
                     } else {
                         echo "Error fetching tables: " . mysqli_error($link);
                     }
                     ?>
-                </div>
-           
-              <div class="row d-flex justify-content-around"style="margin-top: 2rem;" >
+            </div>
+
+              <div class="row d-flex justify-content-around pos-legend-row">
                 <div class="col-md-3">
                     <div class="alert alert-success" role="alert" style="color:white;background-color: rgb(23, 89, 74);" data-toggle="tooltip" data-placement="top" title="Tables That are Free">
                         Available
@@ -136,4 +125,3 @@ require_once '../config.php'; // Include your database configuration
 </div>
 
 <?php include '../inc/dashFooter.php' ?>
-

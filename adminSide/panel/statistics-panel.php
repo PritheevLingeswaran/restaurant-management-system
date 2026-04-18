@@ -1,168 +1,125 @@
 <?php
-session_start(); // Ensure session is started
+session_start();
 require_once '../posBackend/checkIfLoggedIn.php';
-?>
-<?php include '../inc/dashHeader.php'; 
 require_once '../config.php';
+include '../inc/dashHeader.php';
+include '../inc/legacyPanelLayout.php';
 
-// Get current date
 $currentDate = date('Y-m-d');
+$currentWeekStart = date('Y-m-d', strtotime('monday this week'));
+$currentMonthStart = date('Y-m-01');
+$currentMonthEnd = date('Y-m-t');
 
-// Calculate total revenue for today
-$totalRevenueTodayQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
+$totalRevenueTodayQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue
+                           FROM Bill_Items
                            INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                            INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
                            WHERE DATE(Bills.bill_time) = '$currentDate'";
-$totalRevenueTodayResult = mysqli_query($link, $totalRevenueTodayQuery);
-$totalRevenueTodayRow = mysqli_fetch_assoc($totalRevenueTodayResult);
-$totalRevenueToday = (float) $totalRevenueTodayRow['total_revenue'];
+$totalRevenueToday = (float) mysqli_fetch_assoc(mysqli_query($link, $totalRevenueTodayQuery))['total_revenue'];
 
-// Calculate total revenue for this week (assuming week starts on Monday)
-$currentWeekStart = date('Y-m-d', strtotime('monday this week'));
-$totalRevenueThisWeekQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
-                             INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
-                             INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                             WHERE DATE(Bills.bill_time) >= '$currentWeekStart'";
-$totalRevenueThisWeekResult = mysqli_query($link, $totalRevenueThisWeekQuery);
-$totalRevenueThisWeekRow = mysqli_fetch_assoc($totalRevenueThisWeekResult);
-$totalRevenueThisWeek = (float) $totalRevenueThisWeekRow['total_revenue'];
-
-// Calculate total revenue for this month
-$currentMonthStart = date('Y-m-01');
-$totalRevenueThisMonthQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
+$totalRevenueThisWeekQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue
+                              FROM Bill_Items
                               INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                               INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                              WHERE DATE(Bills.bill_time) >= '$currentMonthStart'";
-$totalRevenueThisMonthResult = mysqli_query($link, $totalRevenueThisMonthQuery);
-$totalRevenueThisMonthRow = mysqli_fetch_assoc($totalRevenueThisMonthResult);
-$totalRevenueThisMonth = (float) $totalRevenueThisMonthRow['total_revenue'];
+                              WHERE DATE(Bills.bill_time) >= '$currentWeekStart'";
+$totalRevenueThisWeek = (float) mysqli_fetch_assoc(mysqli_query($link, $totalRevenueThisWeekQuery))['total_revenue'];
+
+$totalRevenueThisMonthQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue
+                               FROM Bill_Items
+                               INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
+                               INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
+                               WHERE DATE(Bills.bill_time) >= '$currentMonthStart'";
+$totalRevenueThisMonth = (float) mysqli_fetch_assoc(mysqli_query($link, $totalRevenueThisMonthQuery))['total_revenue'];
+
+$totalRevenueQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue
+                      FROM Bill_Items
+                      INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id";
+$totalRevenue = (float) mysqli_fetch_assoc(mysqli_query($link, $totalRevenueQuery))['total_revenue'];
+
+$cardQuery = "
+    SELECT IFNULL(SUM(bi.quantity * m.item_price), 0) AS card_revenue
+    FROM Bills b
+    LEFT JOIN Bill_Items bi ON b.bill_id = bi.bill_id
+    LEFT JOIN Menu m ON bi.item_id = m.item_id
+    WHERE LOWER(b.payment_method) = 'card'
+      AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
+";
+$cashQuery = "
+    SELECT IFNULL(SUM(bi.quantity * m.item_price), 0) AS cash_revenue
+    FROM Bills b
+    LEFT JOIN Bill_Items bi ON b.bill_id = bi.bill_id
+    LEFT JOIN Menu m ON bi.item_id = m.item_id
+    WHERE LOWER(b.payment_method) = 'cash'
+      AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
+";
+
+$cardRevenue = (float) mysqli_fetch_assoc(mysqli_query($link, $cardQuery))['card_revenue'];
+$cashRevenue = (float) mysqli_fetch_assoc(mysqli_query($link, $cashQuery))['cash_revenue'];
 ?>
 
+<style>
+    .stats-chart {
+        width: 100%;
+        min-height: 500px;
+    }
 
+    .stats-chart + .stats-chart {
+        margin-top: 1.5rem;
+    }
+</style>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-1 col" style="margin-top: 3rem; margin-left: 13rem;">
-            <div class="container pt-5 pl-600 row">
-                
-
-                <?php
-                require_once '../config.php';
-
-                // Calculate total revenue
-                $totalRevenueQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
-                                     INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id";
-                $totalRevenueResult = mysqli_query($link, $totalRevenueQuery);
-                $totalRevenueRow = mysqli_fetch_assoc($totalRevenueResult);
-                $totalRevenue = (float) $totalRevenueRow['total_revenue'];
-                ?>
-                <h2 style="text-align: center;">Revenue</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Metric</th>
-                            <th scope="col">Amount (Rs)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        
-                        <tr>
-                            <th scope="row">Total Revenue Today</th>
-                            <td><?php echo number_format($totalRevenueToday, 2); ?></td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Total Revenue This Week</th>
-                            <td><?php echo number_format($totalRevenueThisWeek, 2); ?></td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Total Revenue This Month</th>
-                            <td><?php echo number_format($totalRevenueThisMonth, 2); ?></td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Total Revenue</th>
-                            <td><?php echo number_format($totalRevenue, 2); ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <a href="../report/generate_report.php" style="width: 10em;" class="btn btn-dark">Print Report</a>
-                <div class="container pt-5 pl-600 row">
-                    <div class="container pt-5 pl-600 ">
-                        <!-- Bar Chart Payment Method -->
-                        <div id="paymentMethodChart" style="width: 100%; max-width: 1200px; height: 500px;"></div>
-                    </div>
-                    <div class="container pt-5 pl-600 ">
-                        <!-- Donut Chart Payment Method -->
-                        <div id="paymentMethodDonutChart" style="width: 100%; max-width: 1200px; height: 500px;"></div>
-                    </div>
-                </div>         
+<div class="legacy-wrapper">
+    <div class="legacy-surface">
+        <div class="legacy-toolbar">
+            <div>
+                <h2 class="mb-1">Revenue Statistics</h2>
+                <p class="text-muted mb-0">Daily, weekly, monthly, and total revenue summary.</p>
             </div>
+            <a href="../report/generate_report.php" class="btn btn-dark">Print Report</a>
         </div>
+
+        <div class="legacy-table-wrap narrow-table">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Amount (Rs)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Total Revenue Today</td>
+                        <td><?php echo number_format($totalRevenueToday, 2); ?></td>
+                    </tr>
+                    <tr>
+                        <td>Total Revenue This Week</td>
+                        <td><?php echo number_format($totalRevenueThisWeek, 2); ?></td>
+                    </tr>
+                    <tr>
+                        <td>Total Revenue This Month</td>
+                        <td><?php echo number_format($totalRevenueThisMonth, 2); ?></td>
+                    </tr>
+                    <tr>
+                        <td>Total Revenue</td>
+                        <td><?php echo number_format($totalRevenue, 2); ?></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="legacy-surface" style="margin-top: 1.5rem;">
+        <div id="paymentMethodChart" class="stats-chart"></div>
+        <div id="paymentMethodDonutChart" class="stats-chart"></div>
     </div>
 </div>
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-
-<?php
-$currentMonthStart = date('Y-m-01');
-$currentMonthEnd = date('Y-m-t');
-
-// Get the current month and year in the format 'YYYY-MM'
-$currentMonth = date('Y-m');
-// Modify the SQL query to calculate card revenue for the current month
-$cardQuery = "
-    SELECT
-        IFNULL(SUM(bi.quantity * m.item_price), 0) AS card_revenue
-    FROM
-        Bills b
-    LEFT JOIN
-        Bill_Items bi ON b.bill_id = bi.bill_id
-    LEFT JOIN
-        Menu m ON bi.item_id = m.item_id
-    WHERE
-        LOWER(b.payment_method) = 'card'
-        AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59';
-";
-
-// Modify the SQL query to calculate cash revenue for the current month
-$cashQuery = "
-    SELECT
-        IFNULL(SUM(bi.quantity * m.item_price), 0) AS cash_revenue
-    FROM
-        Bills b
-    LEFT JOIN
-        Bill_Items bi ON b.bill_id = bi.bill_id
-    LEFT JOIN
-        Menu m ON bi.item_id = m.item_id
-    WHERE
-        LOWER(b.payment_method) = 'cash'
-        AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59';
-";
-
-$cardResult = $link->query($cardQuery);
-$cashResult = $link->query($cashQuery);
-
-if ($cardResult->num_rows > 0) {
-    $cardRow = $cardResult->fetch_assoc();
-    $cardRevenue = (float) $cardRow['card_revenue'];
-} else {
-    $cardRevenue = 0;
-}
-
-if ($cashResult->num_rows > 0) {
-    $cashRow = $cashResult->fetch_assoc();
-    $cashRevenue = (float) $cashRow['cash_revenue'];
-} else {
-    $cashRevenue = 0;
-}
-?>
-
 <script>
-// Load the Google Charts library
 google.charts.load('current', { packages: ['corechart'] });
 google.charts.setOnLoadCallback(paymentMethodCharts);
 
 function paymentMethodCharts() {
-  // Create the data table for bar chart
   const barChartData = new google.visualization.DataTable();
   barChartData.addColumn('string', 'Payment Method');
   barChartData.addColumn('number', 'Revenue');
@@ -171,7 +128,6 @@ function paymentMethodCharts() {
     ['Cash', <?php echo $cashRevenue; ?>]
   ]);
 
-  // Create the data table for donut chart
   const donutChartData = new google.visualization.DataTable();
   donutChartData.addColumn('string', 'Payment Method');
   donutChartData.addColumn('number', 'Revenue');
@@ -180,7 +136,6 @@ function paymentMethodCharts() {
     ['Cash', <?php echo $cashRevenue; ?>]
   ]);
 
-  // Set chart options for both charts
   const barChartOptions = {
     title: 'Revenue Generated - <?php echo date('F Y'); ?>',
     bars: 'vertical'
@@ -191,7 +146,6 @@ function paymentMethodCharts() {
     pieHole: 0.4
   };
 
-  // Instantiate and draw the charts
   const barChart = new google.visualization.BarChart(document.getElementById('paymentMethodChart'));
   barChart.draw(barChartData, barChartOptions);
 
@@ -199,3 +153,8 @@ function paymentMethodCharts() {
   donutChart.draw(donutChartData, donutChartOptions);
 }
 </script>
+
+<?php
+mysqli_close($link);
+include '../inc/dashFooter.php';
+?>

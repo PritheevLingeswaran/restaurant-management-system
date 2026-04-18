@@ -1,116 +1,105 @@
 <?php
-session_start(); // Ensure session is started
+session_start();
 require_once '../posBackend/checkIfLoggedIn.php';
-include '../inc/dashHeader.php'; 
 require_once '../config.php';
+include '../inc/dashHeader.php';
+include '../inc/legacyPanelLayout.php';
 
-?>
+$memberId = isset($_GET['member_id']) ? (int) $_GET['member_id'] : 1;
 
+$mostOrderedItemsQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS order_count
+                          FROM Bill_Items
+                          INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
+                          INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
+                          WHERE Bills.member_id = $memberId
+                          GROUP BY Bill_Items.item_id, Menu.item_name
+                          ORDER BY order_count DESC";
+$mostOrderedItemsResult = mysqli_query($link, $mostOrderedItemsQuery);
 
-    
-
-
-
-<div class="container-fluid">
-    
-    <div class="row">
-        
-        <div class="col-md-6 order-md-1  " style="margin-top: 6rem; margin-left: 15rem;">
-            <h2 class="pull-left">Search Member</h2>
-            <form method="get" action="#">
-                <div class="row">
-                    <div class="col-md-6">
-                        <input required type="text" id="member_id" style="width:150px" name="member_id" class="form-control" placeholder="Enter Member ID">
-                    </div>
-                    <div class="col-md-6">
-                        <button type="submit"  class="btn btn-dark">Search</button>
-                    </div> 
-                </div>
-            </form><br>
-            
-            <?php
-            require_once '../config.php';
-            $currentMonthStart = date('Y-m-01');
-            $currentMonthEnd = date('Y-m-t');
-
-            // Get the current month and year in the format 'YYYY-MM'
-            $currentMonth = date('Y-m');
-
-            $memberId = isset($_GET['member_id']) ? $_GET['member_id'] : 1;
-            // Get member's most ordered items
-            $mostOrderedItemsQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS order_count
-                                      FROM Bill_Items
-                                      INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
-                                      INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                                      WHERE Bills.member_id = $memberId
-                                      GROUP BY Bill_Items.item_id
-                                      ORDER BY order_count DESC";
-            $mostOrderedItemsResult = mysqli_query($link, $mostOrderedItemsQuery);
-            // Check if any results were returned
-            if(mysqli_num_rows($mostOrderedItemsResult) == 0) {
-                echo "Member ID not found.";
-            }
-            else {
-            ?>          
-            <h3>Showing Member ID - <?php echo $memberId; ?></h3>
-            <h3>Most Ordered Items - (All Time)</h3>
-            <table class="table ">
-                <thead>
-                    <tr>
-                        <th>Item Name</th>
-                        <th>Quantity</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php while ($row = mysqli_fetch_assoc($mostOrderedItemsResult)) : ?>
-                        <tr>
-                            <td><?php echo $row['item_name']; ?></td>
-                            <td><?php echo $row['order_count']; ?></td>
-                        </tr>
-                    <?php endwhile; ?>
-                </tbody>
-            </table>
-            <?php } ?>
-        </div>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-10 order-md-2" style="margin-top: 3rem; margin-left: -10rem;">
-        <div class="container-fluid pt-5  row">
-            <h3>Top 5 Favourites - (All Time)</h3>
-            <div style="width: 800px; height: 800px;">
-                <canvas id="mostOrderedItemsChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Get data for the donut chart
-    <?php
-    $chartLabels = [];
-    $chartData = [];
-
-    $chartItemsResult = mysqli_query($link, $mostOrderedItemsQuery);
+$chartLabels = [];
+$chartData = [];
+if ($mostOrderedItemsResult && mysqli_num_rows($mostOrderedItemsResult) > 0) {
+    mysqli_data_seek($mostOrderedItemsResult, 0);
     $itemCount = 0;
-
-    while ($row = mysqli_fetch_assoc($chartItemsResult)) {
+    while ($row = mysqli_fetch_assoc($mostOrderedItemsResult)) {
         if ($itemCount >= 5) {
             break;
         }
-        array_push($chartLabels, $row['item_name']);
-        array_push($chartData, $row['order_count']);
+        $chartLabels[] = $row['item_name'];
+        $chartData[] = (int) $row['order_count'];
         $itemCount++;
     }
-    ?>
+    mysqli_data_seek($mostOrderedItemsResult, 0);
+}
+?>
 
-    // Create the donut chart
-    var ctx = document.getElementById('mostOrderedItemsChart');
-    
-    var mostOrderedItemsChart = new Chart(ctx, {
+<style>
+    .profile-chart-wrap {
+        width: 100%;
+        max-width: 820px;
+        height: 520px;
+        margin-top: 1rem;
+    }
+</style>
+
+<div class="legacy-wrapper">
+    <div class="legacy-surface">
+        <div class="legacy-toolbar">
+            <h2 class="pull-left">Member Profiles</h2>
+        </div>
+
+        <form method="get" action="#" class="legacy-search-row">
+            <input required type="text" id="member_id" name="member_id" class="form-control" placeholder="Enter Member ID" value="<?php echo htmlspecialchars((string) $memberId); ?>">
+            <button type="submit" class="btn btn-dark">Search</button>
+            <div></div>
+        </form>
+
+        <?php if (!$mostOrderedItemsResult || mysqli_num_rows($mostOrderedItemsResult) === 0): ?>
+            <div class="alert alert-danger mb-0">Member ID not found.</div>
+        <?php else: ?>
+            <div class="legacy-toolbar" style="margin-top: 1rem;">
+                <div>
+                    <h3 class="h4 mb-1">Showing Member ID - <?php echo $memberId; ?></h3>
+                    <p class="text-muted mb-0">Most Ordered Items - (All Time)</p>
+                </div>
+            </div>
+
+            <div class="legacy-table-wrap narrow-table">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = mysqli_fetch_assoc($mostOrderedItemsResult)) : ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                                <td><?php echo (int) $row['order_count']; ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!empty($chartLabels)): ?>
+        <div class="legacy-surface" style="margin-top: 1.5rem;">
+            <h3 class="h4 mb-3">Top 5 Favourites - (All Time)</h3>
+            <div class="profile-chart-wrap">
+                <canvas id="mostOrderedItemsChart"></canvas>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+<?php if (!empty($chartLabels)): ?>
+    const ctx = document.getElementById('mostOrderedItemsChart');
+    new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: <?php echo json_encode($chartLabels); ?>,
@@ -129,15 +118,21 @@ require_once '../config.php';
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            legend: {
-                display: true,
-                position: 'right'
-            },
-            is3D:true
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'right'
+                }
+            }
         }
     });
+<?php endif; ?>
 </script>
 
-
-
-<?php include '../inc/dashFooter.php';  // Include your footer file here ?>
+<?php
+if ($mostOrderedItemsResult) {
+    mysqli_free_result($mostOrderedItemsResult);
+}
+mysqli_close($link);
+include '../inc/dashFooter.php';
+?>

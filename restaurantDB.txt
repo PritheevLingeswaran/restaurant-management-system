@@ -130,6 +130,145 @@ CREATE TABLE IF NOT EXISTS Kitchen (
     FOREIGN KEY (item_id) REFERENCES Menu(item_id)
 );
 
+CREATE TABLE IF NOT EXISTS Inventory_Units (
+    unit_id INT AUTO_INCREMENT PRIMARY KEY,
+    unit_name VARCHAR(50) NOT NULL,
+    unit_symbol VARCHAR(20) NOT NULL,
+    unit_group VARCHAR(50) NOT NULL,
+    UNIQUE KEY uniq_inventory_unit_name (unit_name),
+    UNIQUE KEY uniq_inventory_unit_symbol (unit_symbol)
+);
+
+CREATE TABLE IF NOT EXISTS Inventory_Categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL,
+    storage_type VARCHAR(50) NOT NULL,
+    UNIQUE KEY uniq_inventory_category_name (category_name)
+);
+
+CREATE TABLE IF NOT EXISTS Inventory_Suppliers (
+    supplier_id INT AUTO_INCREMENT PRIMARY KEY,
+    supplier_name VARCHAR(255) NOT NULL,
+    contact_person VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    lead_time_days INT NOT NULL DEFAULT 2,
+    on_time_score DECIMAL(4,1) NOT NULL DEFAULT 8.0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY uniq_supplier_name (supplier_name)
+);
+
+CREATE TABLE IF NOT EXISTS Inventory_Ingredients (
+    ingredient_id VARCHAR(12) PRIMARY KEY,
+    ingredient_name VARCHAR(255) NOT NULL,
+    category_id INT NOT NULL,
+    purchase_unit_id INT NOT NULL,
+    usage_unit_id INT NOT NULL,
+    current_stock DECIMAL(12,3) NOT NULL DEFAULT 0,
+    reorder_level DECIMAL(12,3) NOT NULL DEFAULT 0,
+    par_level DECIMAL(12,3) NOT NULL DEFAULT 0,
+    average_unit_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+    storage_area VARCHAR(100) NOT NULL,
+    shelf_life_days INT NOT NULL DEFAULT 0,
+    is_perishable TINYINT(1) NOT NULL DEFAULT 1,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    last_stocked_at DATETIME NULL,
+    FOREIGN KEY (category_id) REFERENCES Inventory_Categories(category_id),
+    FOREIGN KEY (purchase_unit_id) REFERENCES Inventory_Units(unit_id),
+    FOREIGN KEY (usage_unit_id) REFERENCES Inventory_Units(unit_id)
+);
+
+CREATE TABLE IF NOT EXISTS Inventory_Supplier_Items (
+    supplier_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    supplier_id INT NOT NULL,
+    ingredient_id VARCHAR(12) NOT NULL,
+    supplier_price DECIMAL(10,2) NOT NULL,
+    min_order_qty DECIMAL(12,3) NOT NULL DEFAULT 1,
+    is_preferred TINYINT(1) NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_supplier_ingredient (supplier_id, ingredient_id),
+    FOREIGN KEY (supplier_id) REFERENCES Inventory_Suppliers(supplier_id),
+    FOREIGN KEY (ingredient_id) REFERENCES Inventory_Ingredients(ingredient_id)
+);
+
+CREATE TABLE IF NOT EXISTS Menu_Ingredients (
+    recipe_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id VARCHAR(6) NOT NULL,
+    ingredient_id VARCHAR(12) NOT NULL,
+    quantity_required DECIMAL(12,3) NOT NULL,
+    waste_percentage DECIMAL(5,2) NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_recipe_item (item_id, ingredient_id),
+    FOREIGN KEY (item_id) REFERENCES Menu(item_id),
+    FOREIGN KEY (ingredient_id) REFERENCES Inventory_Ingredients(ingredient_id)
+);
+
+CREATE TABLE IF NOT EXISTS Purchase_Orders (
+    po_id INT AUTO_INCREMENT PRIMARY KEY,
+    supplier_id INT NOT NULL,
+    order_date DATE NOT NULL,
+    expected_date DATE NOT NULL,
+    received_at DATETIME NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'ordered',
+    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    tax_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    notes VARCHAR(255) DEFAULT NULL,
+    created_by INT DEFAULT NULL,
+    FOREIGN KEY (supplier_id) REFERENCES Inventory_Suppliers(supplier_id),
+    FOREIGN KEY (created_by) REFERENCES Staffs(staff_id)
+);
+
+CREATE TABLE IF NOT EXISTS Purchase_Order_Items (
+    po_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    po_id INT NOT NULL,
+    ingredient_id VARCHAR(12) NOT NULL,
+    ordered_qty DECIMAL(12,3) NOT NULL,
+    received_qty DECIMAL(12,3) NOT NULL DEFAULT 0,
+    unit_cost DECIMAL(10,2) NOT NULL,
+    line_total DECIMAL(12,2) NOT NULL,
+    FOREIGN KEY (po_id) REFERENCES Purchase_Orders(po_id),
+    FOREIGN KEY (ingredient_id) REFERENCES Inventory_Ingredients(ingredient_id)
+);
+
+CREATE TABLE IF NOT EXISTS Inventory_Stock_Movements (
+    movement_id INT AUTO_INCREMENT PRIMARY KEY,
+    ingredient_id VARCHAR(12) NOT NULL,
+    movement_type VARCHAR(30) NOT NULL,
+    quantity DECIMAL(12,3) NOT NULL,
+    unit_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+    reference_type VARCHAR(50) DEFAULT NULL,
+    reference_id INT DEFAULT NULL,
+    staff_id INT DEFAULT NULL,
+    notes VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    FOREIGN KEY (ingredient_id) REFERENCES Inventory_Ingredients(ingredient_id),
+    FOREIGN KEY (staff_id) REFERENCES Staffs(staff_id)
+);
+
+CREATE TABLE IF NOT EXISTS Waste_Log (
+    waste_id INT AUTO_INCREMENT PRIMARY KEY,
+    ingredient_id VARCHAR(12) NOT NULL,
+    quantity DECIMAL(12,3) NOT NULL,
+    waste_reason VARCHAR(30) NOT NULL,
+    notes VARCHAR(255) DEFAULT NULL,
+    logged_at DATETIME NOT NULL,
+    logged_by INT DEFAULT NULL,
+    FOREIGN KEY (ingredient_id) REFERENCES Inventory_Ingredients(ingredient_id),
+    FOREIGN KEY (logged_by) REFERENCES Staffs(staff_id)
+);
+
+CREATE TABLE IF NOT EXISTS Inventory_Alerts (
+    alert_id INT AUTO_INCREMENT PRIMARY KEY,
+    ingredient_id VARCHAR(12) NOT NULL,
+    alert_type VARCHAR(30) NOT NULL,
+    alert_message VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL,
+    resolved_at DATETIME DEFAULT NULL,
+    UNIQUE KEY uniq_active_alert (ingredient_id, alert_type),
+    FOREIGN KEY (ingredient_id) REFERENCES Inventory_Ingredients(ingredient_id)
+);
+
 
 
 
@@ -200,7 +339,7 @@ VALUES
 ('S7', 'Cheesy Fries', 'Bar Bites', 'Side Snacks', 980.00, 'delicious cheesy fries'),
 ('S8', 'Cheesy Meat Fries', 'Bar Bites', 'Side Snacks', 1380.00, 'delicious cheesy meat fries'),
 ('S9', 'Grilled Chicken Caesar Salad', 'Salad', 'Side Snacks', 1650.00, 'delicious salad'),
-('S10', 'Shoney Salad', 'Salad', 'Side Snacks', 1420.00, 'delicious salad'),
+('S10', 'Mathew Salad', 'Salad', 'Side Snacks', 1420.00, 'delicious salad'),
 
 ('L1', 'Blended Scotch (Black Label)', 'Liquor', 'Drinks', 18500.00, 'Johnny Walker Black Label Sherry 700ml'),
 ('L2', 'Blended Scotch (Gold Label)', 'Liquor', 'Drinks', 24800.00, 'Johnny Walker Gold Label 750ml'),
@@ -220,7 +359,7 @@ VALUES
 ('C7', 'Mojito', 'Classic Cocktails', 'Drinks', 1520.00, 'cocktails'),
 
 
-('HC1', 'Shoney Iced Tea', 'House Cocktails', 'Drinks', 1720.00, 'Gin, Rum'),
+('HC1', 'Mathew Iced Tea', 'House Cocktails', 'Drinks', 1720.00, 'Gin, Rum'),
 ('HC2', 'Blue Lady', 'House Cocktails', 'Drinks', 1580.00, 'Vodka'),
 ('HC3', 'Black Mambaa', 'House Cocktails', 'Drinks', 1620.00, 'Vodka'),
 ('HC4', 'Lycheetini', 'House Cocktails', 'Drinks', 1490.00, 'Vodka'),
@@ -231,15 +370,15 @@ VALUES
 ('HD3', 'Pie of the Day', 'House Dessert', 'Side Snacks', 720.00, 'delicious served with vanilla ice cream'),
 ('HD4', 'Coated Ice Cream', 'House Dessert', 'Side Snacks', 650.00, 'delicious ice cream'),
 ('HD5', 'Messy Sundae', 'House Dessert', 'Side Snacks', 820.00, 'delicious brownies'),
-('SK1', 'Chicken Tenders', 'Shoney Kid', 'Side Snacks', 880.00, 'delicious chicken tenders'),
-('SK2', 'Chicken Wings', 'Shoney Kid', 'Side Snacks', 920.00, 'delicious chicken wings'),
-('SK3', 'Fish Fingers', 'Shoney Kid', 'Side Snacks', 960.00, 'served with fries & corn'),
-('SK4', 'Cheesy Pasta', 'Shoney Kid', 'Side Snacks', 820.00, 'delicious cheesy pasta'),
-('SK5', 'Meat Sauce Pasta', 'Shoney Kid', 'Side Snacks', 860.00, 'delicious pasta'),
-('SK6', 'Milo', 'Shoney Kid', 'Side Snacks', 320.00, '200ml pack'),
-('SK7', 'Ribena', 'Shoney Kid', 'Side Snacks', 360.00, '330ml pack'),
-('SK8', 'Fruity Yogurt Smoothies', 'Shoney Kid', 'Side Snacks', 480.00, 'watermelon or pineapple'),
-('SK9', 'Ice Cream MilkShakes', 'Shoney Kid', 'Side Snacks', 520.00, 'vanilla or chocolate'),
+('SK1', 'Chicken Tenders', 'Mathew Kid', 'Side Snacks', 880.00, 'delicious chicken tenders'),
+('SK2', 'Chicken Wings', 'Mathew Kid', 'Side Snacks', 920.00, 'delicious chicken wings'),
+('SK3', 'Fish Fingers', 'Mathew Kid', 'Side Snacks', 960.00, 'served with fries & corn'),
+('SK4', 'Cheesy Pasta', 'Mathew Kid', 'Side Snacks', 820.00, 'delicious cheesy pasta'),
+('SK5', 'Meat Sauce Pasta', 'Mathew Kid', 'Side Snacks', 860.00, 'delicious pasta'),
+('SK6', 'Milo', 'Mathew Kid', 'Side Snacks', 320.00, '200ml pack'),
+('SK7', 'Ribena', 'Mathew Kid', 'Side Snacks', 360.00, '330ml pack'),
+('SK8', 'Fruity Yogurt Smoothies', 'Mathew Kid', 'Side Snacks', 480.00, 'watermelon or pineapple'),
+('SK9', 'Ice Cream MilkShakes', 'Mathew Kid', 'Side Snacks', 520.00, 'vanilla or chocolate'),
 ('CP1', 'Green Apple', 'Cold Pressed Juice', 'Drinks', 620.00, 'fresh pressed juice'),
 ('CP2', 'Orange', 'Cold Pressed Juice', 'Drinks', 620.00, 'fresh pressed juice'),
 ('CP3', 'Carrot', 'Cold Pressed Juice', 'Drinks', 580.00, 'fresh pressed juice'),
@@ -317,16 +456,16 @@ VALUES
 
 -- Accounts table
 INSERT INTO Accounts (email, register_date, phone_number, password)
-VALUES ('pritheev@shoneys.in', '2026-03-11', '9876543210', 'password123'),
-       ('arjun.kumar@shoneys.in', '2026-03-12', '9123456780', 'susanpassword'),
-       ('rahul.sharma@shoneys.in', '2026-03-13', '9345678120', 'jamespass'),
-       ('ananya.iyer@shoneys.in', '2026-03-14', '9567812340', 'alicepassword'),
-       ('karthik.raj@shoneys.in', '2026-03-15', '9781234560', 'mikepass'),
-       ('meera.nair@shoneys.in', '2026-03-16', '9890123456', 'lisapassword'),
-       ('vikram.reddy@shoneys.in', '2026-03-17', '9812345678', 'robertpass'),
-       ('sneha.menon@shoneys.in', '2026-03-18', '9734567812', 'emilypassword'),
-       ('aditya.verma@shoneys.in', '2026-03-19', '9654321780', 'davidp321ass'),
-       ('priya.kapoor@shoneys.in', '2026-03-20', '9543216780', 'davidpa2ss'),
+VALUES ('pritheev.r@gmail.com', '2026-03-11', '9876543210', 'password123'),
+       ('arjun.kumar.staff@gmail.com', '2026-03-12', '9123456780', 'susanpassword'),
+       ('rahul.sharma.staff@gmail.com', '2026-03-13', '9345678120', 'jamespass'),
+       ('ananya.iyer.staff@gmail.com', '2026-03-14', '9567812340', 'alicepassword'),
+       ('karthik.raj.staff@gmail.com', '2026-03-15', '9781234560', 'mikepass'),
+       ('meera.nair.staff@gmail.com', '2026-03-16', '9890123456', 'lisapassword'),
+       ('vikram.reddy.staff@gmail.com', '2026-03-17', '9812345678', 'robertpass'),
+       ('sneha.menon.staff@gmail.com', '2026-03-18', '9734567812', 'emilypassword'),
+       ('aditya.verma.staff@gmail.com', '2026-03-19', '9654321780', 'davidp321ass'),
+       ('priya.kapoor.staff@gmail.com', '2026-03-20', '9543216780', 'davidpa2ss'),
        ('aarav.mehta@gmail.com', '2026-03-21', '9432106789', 'david4pass'),
        ('diya.srinivasan@gmail.com', '2026-03-22', '9321098765', 'davidp13ass'),
        ('jamie.mustafa@gmail.com', '2026-03-23', '9210987654', 'david2pass'),
@@ -682,3 +821,161 @@ VALUES
 	(10, 'MD2', 1, '2026-04-06 10:45:00'),
 	(6, 'MD22', 1, '2026-04-06 14:45:00'), 
 	(6, 'CP5', 2, '2026-04-06 14:45:00');
+
+INSERT INTO Inventory_Units (unit_id, unit_name, unit_symbol, unit_group)
+VALUES
+    (1, 'Kilogram', 'kg', 'weight'),
+    (2, 'Gram', 'g', 'weight'),
+    (3, 'Litre', 'ltr', 'volume'),
+    (4, 'Millilitre', 'ml', 'volume'),
+    (5, 'Piece', 'pc', 'count'),
+    (6, 'Bottle', 'bottle', 'count');
+
+INSERT INTO Inventory_Categories (category_id, category_name, storage_type)
+VALUES
+    (1, 'Vegetables', 'Chiller'),
+    (2, 'Meat & Poultry', 'Freezer'),
+    (3, 'Seafood', 'Freezer'),
+    (4, 'Dairy', 'Chiller'),
+    (5, 'Dry Goods', 'Dry Store'),
+    (6, 'Beverage Prep', 'Beverage Station');
+
+INSERT INTO Inventory_Suppliers (supplier_id, supplier_name, contact_person, phone, email, address, lead_time_days, on_time_score, is_active)
+VALUES
+    (1, 'Koyambedu Fresh Produce Co.', 'M. Dinesh', '9840012345', 'orders@kfpco.in', 'Koyambedu Market Yard, Chennai', 1, 9.1, 1),
+    (2, 'Coastal Catch Seafood', 'Asha Menon', '9840098765', 'supply@coastalcatch.in', 'Kasimedu Harbour Road, Chennai', 2, 8.7, 1),
+    (3, 'Nilgiris Dairy & Cold Chain', 'S. Harish', '9884412345', 'care@nilgirisdairy.in', 'Ambattur Industrial Estate, Chennai', 2, 8.9, 1),
+    (4, 'Chef Pantry Dry Goods', 'Ritika Jain', '9894011223', 'bulk@chefpantry.in', 'Parrys Corner, Chennai', 3, 8.4, 1),
+    (5, 'Prime Protein Meats', 'Faizal Ahmed', '9790912345', 'sales@primeprotein.in', 'Madhavaram, Chennai', 2, 8.8, 1);
+
+INSERT INTO Inventory_Ingredients
+    (ingredient_id, ingredient_name, category_id, purchase_unit_id, usage_unit_id, current_stock, reorder_level, par_level, average_unit_cost, storage_area, shelf_life_days, is_perishable, is_active, last_stocked_at)
+VALUES
+    ('ING001', 'Tomato', 1, 1, 2, 22000.000, 8000.000, 30000.000, 0.18, 'Veg Chiller A', 5, 1, 1, '2026-04-16 08:00:00'),
+    ('ING002', 'Onion', 1, 1, 2, 30000.000, 10000.000, 40000.000, 0.12, 'Veg Chiller A', 12, 1, 1, '2026-04-16 08:00:00'),
+    ('ING003', 'Potato', 1, 1, 2, 35000.000, 12000.000, 45000.000, 0.10, 'Dry Store Rack 2', 15, 1, 1, '2026-04-16 08:00:00'),
+    ('ING004', 'Lettuce', 1, 1, 2, 6000.000, 4000.000, 9000.000, 0.32, 'Salad Chiller', 3, 1, 1, '2026-04-16 08:00:00'),
+    ('ING005', 'Chicken Breast', 2, 1, 2, 18000.000, 7000.000, 24000.000, 0.48, 'Protein Freezer', 5, 1, 1, '2026-04-16 08:00:00'),
+    ('ING006', 'Minced Lamb', 2, 1, 2, 9000.000, 3500.000, 14000.000, 0.82, 'Protein Freezer', 4, 1, 1, '2026-04-16 08:00:00'),
+    ('ING007', 'Beef Steak Cut', 2, 1, 2, 11000.000, 5000.000, 18000.000, 1.25, 'Protein Freezer', 6, 1, 1, '2026-04-16 08:00:00'),
+    ('ING008', 'Salmon Fillet', 3, 1, 2, 4500.000, 1800.000, 7000.000, 1.65, 'Seafood Freezer', 3, 1, 1, '2026-04-16 08:00:00'),
+    ('ING009', 'Prawn', 3, 1, 2, 5200.000, 2000.000, 9000.000, 1.48, 'Seafood Freezer', 3, 1, 1, '2026-04-16 08:00:00'),
+    ('ING010', 'Butter', 4, 1, 2, 7000.000, 2500.000, 12000.000, 0.62, 'Dairy Chiller', 18, 1, 1, '2026-04-16 08:00:00'),
+    ('ING011', 'Cream', 3, 4, 4, 9000.000, 3000.000, 14000.000, 0.24, 'Dairy Chiller', 10, 1, 1, '2026-04-16 08:00:00'),
+    ('ING012', 'Cheddar Cheese', 4, 1, 2, 6500.000, 2200.000, 9000.000, 0.75, 'Dairy Chiller', 20, 1, 1, '2026-04-16 08:00:00'),
+    ('ING013', 'Basmati Rice', 5, 1, 2, 28000.000, 9000.000, 40000.000, 0.16, 'Dry Store Rack 1', 180, 0, 1, '2026-04-16 08:00:00'),
+    ('ING014', 'Pasta', 5, 1, 2, 18000.000, 5000.000, 25000.000, 0.14, 'Dry Store Rack 1', 180, 0, 1, '2026-04-16 08:00:00'),
+    ('ING015', 'Burger Bun', 5, 5, 5, 120.000, 40.000, 180.000, 18.00, 'Bakery Shelf', 3, 1, 1, '2026-04-16 08:00:00'),
+    ('ING016', 'French Fries', 5, 1, 2, 16000.000, 6000.000, 24000.000, 0.20, 'Freezer Dry Goods', 120, 0, 1, '2026-04-16 08:00:00'),
+    ('ING017', 'Orange Fruit', 1, 1, 2, 3000.000, 1500.000, 5000.000, 0.22, 'Juice Chiller', 6, 1, 1, '2026-04-16 08:00:00'),
+    ('ING018', 'Green Apple', 1, 1, 2, 2800.000, 1200.000, 4500.000, 0.26, 'Juice Chiller', 6, 1, 1, '2026-04-16 08:00:00'),
+    ('ING019', 'Mint Leaves', 1, 1, 2, 1600.000, 600.000, 2500.000, 0.40, 'Juice Chiller', 4, 1, 1, '2026-04-16 08:00:00'),
+    ('ING020', 'Fresh Lime', 1, 1, 2, 1400.000, 800.000, 2200.000, 0.30, 'Juice Chiller', 5, 1, 1, '2026-04-16 08:00:00'),
+    ('ING021', 'Black Lentils', 5, 1, 2, 7000.000, 2000.000, 11000.000, 0.19, 'Dry Store Rack 3', 180, 0, 1, '2026-04-16 08:00:00'),
+    ('ING022', 'Paneer', 4, 1, 2, 6200.000, 2500.000, 10000.000, 0.44, 'Dairy Chiller', 7, 1, 1, '2026-04-16 08:00:00'),
+    ('ING023', 'Chicken with Bone', 2, 1, 2, 2200.000, 2500.000, 9000.000, 0.41, 'Protein Freezer', 5, 1, 1, '2026-04-16 08:00:00'),
+    ('ING024', 'Cooking Oil', 3, 3, 4, 18000.000, 6000.000, 26000.000, 0.14, 'Main Store', 180, 0, 1, '2026-04-16 08:00:00');
+
+INSERT INTO Inventory_Supplier_Items (supplier_id, ingredient_id, supplier_price, min_order_qty, is_preferred)
+VALUES
+    (1, 'ING001', 180.00, 10.000, 1),
+    (1, 'ING002', 120.00, 10.000, 1),
+    (1, 'ING003', 100.00, 15.000, 1),
+    (1, 'ING004', 320.00, 5.000, 1),
+    (1, 'ING017', 220.00, 5.000, 1),
+    (1, 'ING018', 260.00, 5.000, 1),
+    (1, 'ING019', 400.00, 2.000, 1),
+    (1, 'ING020', 300.00, 2.000, 1),
+    (2, 'ING008', 1650.00, 2.000, 1),
+    (2, 'ING009', 1480.00, 2.000, 1),
+    (3, 'ING010', 620.00, 5.000, 1),
+    (3, 'ING011', 240.00, 10.000, 1),
+    (3, 'ING012', 750.00, 5.000, 1),
+    (3, 'ING022', 440.00, 5.000, 1),
+    (4, 'ING013', 160.00, 10.000, 1),
+    (4, 'ING014', 140.00, 10.000, 1),
+    (4, 'ING015', 18.00, 24.000, 1),
+    (4, 'ING016', 200.00, 10.000, 1),
+    (4, 'ING021', 190.00, 5.000, 1),
+    (5, 'ING005', 480.00, 8.000, 1),
+    (5, 'ING006', 820.00, 5.000, 1),
+    (5, 'ING007', 1250.00, 5.000, 1),
+    (5, 'ING023', 410.00, 10.000, 1);
+
+INSERT INTO Menu_Ingredients (item_id, ingredient_id, quantity_required, waste_percentage)
+VALUES
+    ('MD1', 'ING007', 0.300, 5.0),
+    ('MD1', 'ING010', 0.020, 2.0),
+    ('MD15', 'ING007', 0.160, 4.0),
+    ('MD15', 'ING015', 1.000, 0.0),
+    ('MD15', 'ING012', 0.030, 1.0),
+    ('MD15', 'ING001', 0.025, 5.0),
+    ('MD15', 'ING004', 0.020, 8.0),
+    ('MD15', 'ING016', 0.150, 2.0),
+    ('MD23', 'ING005', 0.170, 5.0),
+    ('MD23', 'ING015', 1.000, 0.0),
+    ('MD23', 'ING004', 0.020, 8.0),
+    ('MD23', 'ING001', 0.020, 5.0),
+    ('S1', 'ING023', 0.220, 8.0),
+    ('S1', 'ING024', 0.050, 0.0),
+    ('S3', 'ING012', 0.060, 2.0),
+    ('S3', 'ING010', 0.020, 1.0),
+    ('MD2', 'ING007', 0.230, 5.0),
+    ('MD5', 'ING023', 0.450, 7.0),
+    ('MD22', 'ING009', 0.180, 5.0),
+    ('CP1', 'ING018', 0.250, 10.0),
+    ('CP2', 'ING017', 0.280, 8.0),
+    ('CP5', 'ING020', 0.050, 4.0),
+    ('M1', 'ING020', 0.030, 3.0),
+    ('M1', 'ING019', 0.015, 4.0),
+    ('IN11', 'ING021', 0.180, 6.0),
+    ('IN12', 'ING022', 0.180, 5.0),
+    ('IN15', 'ING023', 0.240, 7.0),
+    ('IN15', 'ING010', 0.025, 1.0),
+    ('IN19', 'ING013', 0.220, 5.0),
+    ('IN19', 'ING023', 0.180, 7.0);
+
+INSERT INTO Purchase_Orders (po_id, supplier_id, order_date, expected_date, received_at, status, subtotal, tax_amount, total_amount, notes, created_by)
+VALUES
+    (1, 1, '2026-04-12', '2026-04-13', '2026-04-13 07:30:00', 'received', 9800.00, 0.00, 9800.00, 'Leafy vegetables and citrus restock', 7),
+    (2, 5, '2026-04-14', '2026-04-15', '2026-04-15 08:00:00', 'received', 21450.00, 0.00, 21450.00, 'Protein replenishment for grill and burger section', 7),
+    (3, 3, '2026-04-17', '2026-04-19', NULL, 'ordered', 7200.00, 0.00, 7200.00, 'Weekend dairy top-up', 8);
+
+INSERT INTO Purchase_Order_Items (po_id, ingredient_id, ordered_qty, received_qty, unit_cost, line_total)
+VALUES
+    (1, 'ING001', 15.000, 15.000, 180.00, 2700.00),
+    (1, 'ING017', 10.000, 10.000, 220.00, 2200.00),
+    (1, 'ING020', 8.000, 8.000, 300.00, 2400.00),
+    (1, 'ING019', 2.000, 2.000, 400.00, 800.00),
+    (1, 'ING004', 5.000, 5.000, 320.00, 1600.00),
+    (2, 'ING005', 12.000, 12.000, 480.00, 5760.00),
+    (2, 'ING007', 8.000, 8.000, 1250.00, 10000.00),
+    (2, 'ING023', 14.000, 14.000, 410.00, 5740.00),
+    (3, 'ING010', 5.000, 0.000, 620.00, 3100.00),
+    (3, 'ING011', 10.000, 0.000, 240.00, 2400.00),
+    (3, 'ING022', 5.000, 0.000, 340.00, 1700.00);
+
+INSERT INTO Inventory_Stock_Movements (ingredient_id, movement_type, quantity, unit_cost, reference_type, reference_id, staff_id, notes, created_at)
+VALUES
+    ('ING001', 'purchase_in', 15000.000, 0.18, 'purchase_order', 1, 7, 'Produce replenishment', '2026-04-13 07:30:00'),
+    ('ING017', 'purchase_in', 10000.000, 0.22, 'purchase_order', 1, 7, 'Fresh orange stock-in', '2026-04-13 07:30:00'),
+    ('ING020', 'purchase_in', 8000.000, 0.30, 'purchase_order', 1, 7, 'Citrus stock-in', '2026-04-13 07:30:00'),
+    ('ING019', 'purchase_in', 2000.000, 0.40, 'purchase_order', 1, 7, 'Mint bundle intake', '2026-04-13 07:30:00'),
+    ('ING004', 'purchase_in', 5000.000, 0.32, 'purchase_order', 1, 7, 'Salad greens stock-in', '2026-04-13 07:30:00'),
+    ('ING005', 'purchase_in', 12000.000, 0.48, 'purchase_order', 2, 7, 'Chicken restock', '2026-04-15 08:00:00'),
+    ('ING007', 'purchase_in', 8000.000, 1.25, 'purchase_order', 2, 7, 'Beef restock', '2026-04-15 08:00:00'),
+    ('ING023', 'purchase_in', 14000.000, 0.41, 'purchase_order', 2, 7, 'Chicken on-bone restock', '2026-04-15 08:00:00'),
+    ('ING007', 'kitchen_usage', -630.000, 1.25, 'kitchen', 1, 9, 'Consumed for Prime Rib Steak', '2026-04-16 13:30:00'),
+    ('ING015', 'kitchen_usage', -2.000, 18.00, 'kitchen', 4, 9, 'Consumed for burger service', '2026-04-16 13:40:00'),
+    ('ING012', 'kitchen_usage', -61.200, 0.75, 'kitchen', 4, 9, 'Consumed for burger service', '2026-04-16 13:40:00'),
+    ('ING023', 'waste', -800.000, 0.41, 'waste_log', NULL, 6, 'Bone trimming loss', '2026-04-17 10:15:00'),
+    ('ING011', 'spoilage', -1200.000, 0.24, 'waste_log', NULL, 6, 'Cream batch expired', '2026-04-17 18:20:00');
+
+INSERT INTO Waste_Log (ingredient_id, quantity, waste_reason, notes, logged_at, logged_by)
+VALUES
+    ('ING023', 800.000, 'waste', 'Bone trimming and prep loss', '2026-04-17 10:15:00', 6),
+    ('ING011', 1200.000, 'spoilage', 'Cream batch expired before service', '2026-04-17 18:20:00', 6);
+
+INSERT INTO Inventory_Alerts (ingredient_id, alert_type, alert_message, status, created_at, resolved_at)
+VALUES
+    ('ING023', 'low_stock', 'Chicken with Bone is below reorder level (2200.000 remaining, reorder at 2500.000).', 'active', '2026-04-17 18:30:00', NULL);

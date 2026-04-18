@@ -1,103 +1,76 @@
 <?php
-session_start(); // Ensure session is started
+session_start();
 require_once '../posBackend/checkIfLoggedIn.php';
+require_once "../config.php";
+include '../inc/dashHeader.php';
+include '../inc/legacyPanelLayout.php';
+
+$search = trim($_POST['search'] ?? '');
+$sql = "SELECT * FROM Bills ORDER BY bill_id;";
+if ($search !== '') {
+    $escaped = mysqli_real_escape_string($link, $search);
+    $sql = "SELECT * FROM Bills WHERE table_id LIKE '%$escaped%' OR payment_method LIKE '%$escaped%' OR bill_id LIKE '%$escaped%' OR card_id LIKE '%$escaped%'";
+}
+$result = mysqli_query($link, $sql);
 ?>
-<?php include '../inc/dashHeader.php'; ?>
-    <style>
-        .wrapper{ width: 85%; padding-left: 200px; padding-top: 20px  }
-    </style>
 
-<div class="wrapper">
-    <div class="container-fluid pt-5 pl-600">
-        <div class="row">
-            <div class="m-50">
-                <div class="mt-5 mb-3">
-                    <h2 class="pull-left">Search Bills Details</h2>
-                    <form method="POST" action="#">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <input required type="text" id="search" name="search" class="form-control" placeholder="Enter Bill ID, Table ID, Card ID, Payment Method">
-                            </div>
-                            <div class="col-md-3">
-                                <button type="submit" class="btn btn-dark">Search</button>
-                            </div>
-                            <div class="col" style="text-align: right;" >
-                                <a href="bill-panel.php" class="btn btn-light">Show All</a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                
-                <?php
-                // Include config file
-                require_once "../config.php";
-                
-                if (isset($_POST['search'])) {
-                    if (!empty($_POST['search'])) {
-                        $search = $_POST['search'];
-                        
-                        $sql = "SELECT * FROM Bills WHERE table_id LIKE '%$search%' OR payment_method LIKE '%$search%' OR bill_id LIKE '%$search%' OR card_id LIKE '%$search%'";
-                    } else {
-                        // Default query to fetch all bills
-                        $sql = "SELECT * FROM Bills ORDER BY bill_id;";
-                    }
-                } else {
-                    $sql = "SELECT * FROM Bills ORDER BY bill_id;";
-                }
-                
-                if ($result = mysqli_query($link, $sql)) {
-                    if (mysqli_num_rows($result) > 0) {
-                        echo '<table class="table table-bordered table-striped" >';
-                        echo "<thead>";
-                        echo "<tr>";
-                        echo "<th>Bill ID</th>";
-                        echo "<th>Staff ID</th>";
-                        echo "<th>Member ID</th>";
-                        echo "<th>Reservation ID</th>";
-                        echo "<th>Table ID</th>";
-                        echo "<th>Card ID</th>";
-                        echo "<th>Payment Method</th>";
-                        echo "<th style='width:13em'>Bill Time</th>";
-                        echo "<th style='width:13em'>Payment Time</th>";
-                       // echo "<th>Delete</th>";
-                        echo "<th>Receipt</th>";
-                        echo "</tr>";
-                        echo "</thead>";
-                        echo "<tbody>";
-                        while ($row = mysqli_fetch_array($result)) {
-                            echo "<tr>";
-                            echo "<td>" . $row['bill_id'] . "</td>";
-                            echo "<td>" . $row['staff_id'] . "</td>";
-                            echo "<td>" . $row['member_id'] . "</td>";
-                            echo "<td>" . $row['reservation_id'] . "</td>";
-                            echo "<td>" . $row['table_id'] . "</td>";
-                            echo "<td>" . $row['card_id'] . "</td>";
-                            echo "<td>" . $row['payment_method'] . "</td>";
-                            echo "<td>" . $row['bill_time'] . "</td>";
-                            echo "<td>" . $row['payment_time'] . "</td>";
-                           // echo "<td>";
-                           // echo '<a href="../billsCrud/deleteBill.php?id='. $row['bill_id'] .'" title="Delete Record" data-toggle="tooltip" onclick="return confirm(\'Are you sure you want to delete this bill? This action is unrecoverable. \')"><span class="fa fa-trash text-black"></span></a>';
-                           // echo "</td>";
-                            echo "<td>";
-                            echo '<a href="../posBackend/receipt.php?bill_id='. $row['bill_id'] .'" title="Receipt" data-toggle="tooltip"><span class="fa fa-receipt text-black"></span></a>';
-                            echo "</td>";
-                            echo "</tr>";
-                        }
-                        echo "</tbody>";
-                        echo "</table>";
-                    } else {
-                        echo '<div class="alert alert-danger"><em>No records were found.</em></div>';
-                    }
-                } else {
-                    echo "Oops! Something went wrong. Please try again later.";
-                }
-
-                // Close connection
-                mysqli_close($link);
-                ?>
-            </div>
+<div class="legacy-wrapper">
+    <div class="legacy-surface">
+        <div class="legacy-toolbar">
+            <h2 class="pull-left">Search Bills Details</h2>
         </div>
+
+        <form method="POST" action="#" class="legacy-search-row">
+            <input type="text" id="search" name="search" class="form-control" placeholder="Enter Bill ID, Table ID, Card ID, Payment Method" value="<?php echo htmlspecialchars($search); ?>">
+            <button type="submit" class="btn btn-dark">Search</button>
+            <a href="bill-panel.php" class="btn btn-light">Show All</a>
+        </form>
+
+        <?php if ($result && mysqli_num_rows($result) > 0): ?>
+            <div class="legacy-table-wrap narrow-table">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th style="width: 5.5rem;">Bill ID</th>
+                            <th style="width: 5.5rem;">Staff ID</th>
+                            <th style="width: 6rem;">Member ID</th>
+                            <th style="width: 7rem;">Reservation ID</th>
+                            <th style="width: 5rem;">Table ID</th>
+                            <th style="width: 5rem;">Card ID</th>
+                            <th>Payment Method</th>
+                            <th style="width:10rem">Bill Time</th>
+                            <th style="width:10rem">Payment Time</th>
+                            <th style="width:5rem;">Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = mysqli_fetch_array($result)): ?>
+                            <tr>
+                                <td><?php echo $row['bill_id']; ?></td>
+                                <td><?php echo $row['staff_id']; ?></td>
+                                <td><?php echo $row['member_id']; ?></td>
+                                <td><?php echo $row['reservation_id']; ?></td>
+                                <td><?php echo $row['table_id']; ?></td>
+                                <td><?php echo $row['card_id']; ?></td>
+                                <td><?php echo htmlspecialchars((string) ($row['payment_method'] ?? '-')); ?></td>
+                                <td><?php echo htmlspecialchars((string) ($row['bill_time'] ?? '-')); ?></td>
+                                <td><?php echo htmlspecialchars((string) ($row['payment_time'] ?? '-')); ?></td>
+                                <td><a href="../posBackend/receipt.php?bill_id=<?php echo (int) $row['bill_id']; ?>" title="Receipt" data-toggle="tooltip"><span class="fa fa-receipt text-black"></span></a></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-danger"><em>No records were found.</em></div>
+        <?php endif; ?>
     </div>
 </div>
 
-<?php include '../inc/dashFooter.php'; ?>
+<?php
+if ($result) {
+    mysqli_free_result($result);
+}
+mysqli_close($link);
+include '../inc/dashFooter.php';
+?>

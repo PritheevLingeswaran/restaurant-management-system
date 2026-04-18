@@ -5,6 +5,49 @@
     text-align: center;
     min-height: 100vh;
         }
+
+.pos-layout-shell {
+    width: calc(100% - 240px);
+    margin-left: 240px;
+    padding: 4.75rem 1.5rem 2.5rem;
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: flex-start;
+}
+
+.pos-layout-inner {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    padding: 2.25rem 1.5rem;
+    max-width: 1500px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.pos-table-stage {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.pos-table-grid {
+    row-gap: 0.6rem;
+}
+
+.pos-table-card {
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    width: 9rem;
+    height: 9rem;
+    white-space: pre-line;
+    text-align: center;
+}
+
+.pos-legend-row {
+    margin-top: 2rem;
+}
         
 /* Add your other styles here */
 #item-select-section {
@@ -19,4 +62,13 @@
     max-height: 60rem;
     padding: 1rem; /* Add padding as needed */
     
+}
+
+@media (max-width: 1200px) {
+    .pos-layout-shell {
+        width: 100%;
+        margin-left: 0;
+        padding: 1rem;
+        min-height: auto;
+    }
 }

@@ -1,115 +1,145 @@
 <?php
-session_start(); // Ensure session is started
-?>
-<?php
+session_start();
 require_once '../config.php';
-include '../inc/dashHeader.php'; 
-$bill_id = $_GET['bill_id'];
-$staff_id = $_GET['staff_id'];
-$member_id = $_GET['member_id'];
-$reservation_id = $_GET['reservation_id'];
+include '../inc/dashHeader.php';
+include '../inc/legacyPanelLayout.php';
+
+$bill_id = (int) ($_GET['bill_id'] ?? 0);
+$staff_id = (int) ($_GET['staff_id'] ?? 0);
+$member_id = (int) ($_GET['member_id'] ?? 0);
+$reservation_id = (int) ($_GET['reservation_id'] ?? 0);
+
+$cart_query = "SELECT bi.*, m.item_name, m.item_price
+               FROM bill_items bi
+               JOIN Menu m ON bi.item_id = m.item_id
+               WHERE bi.bill_id = '$bill_id'";
+$cart_result = mysqli_query($link, $cart_query);
+$cart_total = 0;
+$tax = 0.1;
 ?>
 
-<div class="container" style="margin-top: 15rem; margin-left: 4rem;">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Bill (Credit Card Payment)</h3>
-                </div>
-                <div class="card-body">
-                    <h5>Bill ID: <?php echo $bill_id; ?></h5>
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Item ID</th>
-                                    <th>Item Name</th>
-                                    <th>Price</th>
-                                    <th>Quantity</th>
-                                    <th>Total</th>
-                                    
-                                </tr>
-                            </thead>
-                            <tbody>
-            <?php
-            // Query to fetch cart items for the given bill_id
-            $cart_query = "SELECT bi.*, m.item_name, m.item_price FROM bill_items bi
-                           JOIN Menu m ON bi.item_id = m.item_id
-                           WHERE bi.bill_id = '$bill_id'";
-            $cart_result = mysqli_query($link, $cart_query);
-            $cart_total = 0;//cart total
-            $tax = 0.1; // 10% tax rate
+<style>
+    .payment-page {
+        width: calc(100% - 240px);
+        margin-left: 240px;
+        padding: 4.75rem 1.5rem 2.5rem;
+    }
 
-            if ($cart_result && mysqli_num_rows($cart_result) > 0) {
-                while ($cart_row = mysqli_fetch_assoc($cart_result)) {
-                    $item_id = $cart_row['item_id'];
-                    $item_name = $cart_row['item_name'];
-                    $item_price = $cart_row['item_price'];
-                    $quantity = $cart_row['quantity'];
-                    $total = $item_price * $quantity;
-                    $bill_item_id = $cart_row['bill_item_id'];
-                    $cart_total += $total;
-                    echo '<tr>';
-                    echo '<td>' . $item_id . '</td>';
-                    echo '<td>' . $item_name . '</td>';
-                    echo '<td>Rs ' . number_format($item_price,2) . '</td>';
-                    echo '<td>' . $quantity . '</td>';
-                    echo '<td>Rs ' . number_format($total,2) . '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="6">No Items in Cart.</td></tr>';
-            }
-            ?>
-        </tbody>
-                        </table>
-                    </div>
-                    <hr>
-                    <div class="text-right">
-                        <?php 
-                        echo "<strong>Total:</strong> Rs " . number_format($cart_total, 2) . "<br>";
-                        echo "<strong>Tax (10%):</strong> Rs " . number_format($cart_total * $tax, 2) . "<br>";
-                        $GRANDTOTAL = $tax * $cart_total + $cart_total;
-                        echo "<strong>Grand Total:</strong> Rs " . number_format($GRANDTOTAL, 2);
-                        ?>
-                    </div>
-                </div>
+    .payment-page .legacy-surface + .legacy-surface {
+        margin-top: 1.5rem;
+    }
+
+    .payment-summary {
+        max-width: 420px;
+        margin-top: 1rem;
+    }
+
+    @media (max-width: 1200px) {
+        .payment-page {
+            width: 100%;
+            margin-left: 0;
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="payment-page">
+    <div class="legacy-surface">
+        <div class="legacy-toolbar">
+            <div>
+                <h2 class="pull-left">Bill (Credit Card Payment)</h2>
+                <p class="text-muted mb-0">Bill ID: <?php echo $bill_id; ?></p>
             </div>
         </div>
-    </div>
-</div>
 
-<div id="card-payment" class="col-md-6 order-md-2" style="margin-top: 10rem; margin-right: 5rem;max-width: 40rem;">
-    <div class="container-fluid pt-5 pl-3 pr-3">
-        <h1>Fill in your card details</h1>
-        <form action="creditCard.php?bill_id=<?php echo $bill_id; ?>" method="post">
-            <div class="form-group">
+        <div class="legacy-table-wrap">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Item ID</th>
+                        <th>Item Name</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($cart_result && mysqli_num_rows($cart_result) > 0): ?>
+                        <?php while ($cart_row = mysqli_fetch_assoc($cart_result)): ?>
+                            <?php
+                            $item_price = (float) $cart_row['item_price'];
+                            $quantity = (int) $cart_row['quantity'];
+                            $total = $item_price * $quantity;
+                            $cart_total += $total;
+                            ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($cart_row['item_id']); ?></td>
+                                <td><?php echo htmlspecialchars($cart_row['item_name']); ?></td>
+                                <td>Rs <?php echo number_format($item_price, 2); ?></td>
+                                <td><?php echo $quantity; ?></td>
+                                <td>Rs <?php echo number_format($total, 2); ?></td>
+                            </tr>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="5">No Items in Cart.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="payment-summary">
+            <table class="table table-bordered mb-0">
+                <tbody>
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td>Rs <?php echo number_format($cart_total, 2); ?></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tax (10%)</strong></td>
+                        <td>Rs <?php echo number_format($cart_total * $tax, 2); ?></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Grand Total</strong></td>
+                        <td>Rs <?php echo number_format(($tax * $cart_total) + $cart_total, 2); ?></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="legacy-surface">
+        <div class="legacy-toolbar">
+            <h2 class="pull-left">Card Details</h2>
+        </div>
+
+        <form action="creditCard.php?bill_id=<?php echo $bill_id; ?>" method="post" style="max-width: 540px;">
+            <div class="form-group mb-3">
                 <label for="cardNameField">Account Holder Name</label>
                 <input type="text" id="cardNameField" name="cardName" class="form-control" required>
             </div>
-            <div class="form-group">
+            <div class="form-group mb-3">
                 <label for="cardField">Card Number</label>
                 <input type="text" id="cardField" name="cardNumber" maxlength="19" minlength="15" class="form-control" placeholder="1234567890123456 (15 to 19 digits)" required>
             </div>
-            <div class="form-group">
+            <div class="form-group mb-3">
                 <label for="expiryDate">Expiry Date</label>
                 <input type="text" id="expiryDate" name="expiryDate" pattern="(0[1-9]|1[0-2])\/[0-9]{4}" maxlength="7" placeholder="MM/YYYY" class="form-control" required>
             </div>
-            <div class="form-group">
+            <div class="form-group mb-3">
                 <label for="securityCode">Security Code</label>
                 <input type="text" id="securityCode" name="securityCode" maxlength="3" class="form-control" placeholder="CCV" pattern="[0-9]{3}" required>
                 <small class="form-text text-muted">Please enter a 3-digit security code.</small>
             </div>
 
-            <!-- Add hidden input fields for bill_id, staff_id, member_id, and reservation_id -->
             <input type="hidden" name="bill_id" value="<?php echo $bill_id; ?>">
             <input type="hidden" name="staff_id" value="<?php echo $staff_id; ?>">
             <input type="hidden" name="member_id" value="<?php echo $member_id; ?>">
             <input type="hidden" name="reservation_id" value="<?php echo $reservation_id; ?>">
-            <input type="hidden" name="GRANDTOTAL" value="<?php echo $tax * $cart_total + $cart_total; ?>">
+            <input type="hidden" name="GRANDTOTAL" value="<?php echo ($tax * $cart_total) + $cart_total; ?>">
 
-            <div class="form-check">
+            <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="privacyCheckbox" required>
                 <label class="form-check-label" for="privacyCheckbox">I agree to the Private Data Terms and Conditions</label><br>
                 <small id="privacyHelp" class="form-text text-muted">By checking the box you understand we will save your credit card information.</small>
@@ -120,5 +150,3 @@ $reservation_id = $_GET['reservation_id'];
 </div>
 
 <?php include '../inc/dashFooter.php'; ?>
-
-         

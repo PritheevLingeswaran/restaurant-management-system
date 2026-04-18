@@ -30,7 +30,7 @@ if (isset($_SESSION['logged_account_id'])) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Dashboard - SB Admin</title>
+        <title>Boundless Staff Panel</title>
         <link href="../css/styles.css" rel="stylesheet" />
         <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -89,6 +89,26 @@ if (isset($_SESSION['logged_account_id'])) {
                                 <div class="sb-nav-link-icon"><i class="fas fa-kitchen-set"></i></div>
                                 Kitchen
                             </a>
+                            <a class="nav-link" href="../panel/inventory-panel.php">
+                                <div class="sb-nav-link-icon"><i class="fas fa-boxes-stacked"></i></div>
+                                Inventory
+                            </a>
+                            <a class="nav-link" href="../panel/suppliers-panel.php">
+                                <div class="sb-nav-link-icon"><i class="fas fa-truck-field"></i></div>
+                                Suppliers
+                            </a>
+                            <a class="nav-link" href="../panel/purchase-orders-panel.php">
+                                <div class="sb-nav-link-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                                Purchase Orders
+                            </a>
+                            <a class="nav-link" href="../panel/waste-panel.php">
+                                <div class="sb-nav-link-icon"><i class="fas fa-recycle"></i></div>
+                                Waste & Spoilage
+                            </a>
+                            <a class="nav-link" href="../panel/recipe-costing-panel.php">
+                                <div class="sb-nav-link-icon"><i class="fas fa-scale-balanced"></i></div>
+                                Recipe Costing
+                            </a>
                             <div class="sb-sidenav-menu-heading">Report & Analytics</div>
                             <a class="nav-link" href="../panel/sales-panel.php">
                                 <div class="sb-nav-link-icon"><i class="fas fa-fire"></i></div>
@@ -128,7 +148,5 @@ if (isset($_SESSION['logged_account_id'])) {
                         </div>
                 </nav>
             </div>
-        </<div>
-            <div id="content-for-template">Content</div> 
-        
+        </div>
         <script src="../js/scripts.js" type="text/javascript"></script>

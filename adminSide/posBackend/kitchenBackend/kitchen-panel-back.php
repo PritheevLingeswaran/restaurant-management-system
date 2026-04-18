@@ -1,45 +1,59 @@
 <?php
+session_start();
 require_once '../../config.php';
-//echo '<a href="kitchenBackend/kitchen-panel-back.php?action=set_time_ended&kitchen_id=' . $kitchen_id . '" class="btn btn-danger">Set Time Ended</a>';
 
-// Handle setting time_ended and undo actions
-if (isset($_GET['action']) && isset($_GET['kitchen_id'])) {
-    $action = $_GET['action'];
-    $kitchen_id = $_GET['kitchen_id'];
-    
-    if ($action === 'set_time_ended') {
-        $currentTime = date('Y-m-d H:i:s');
-        $updateQuery = "UPDATE Kitchen SET time_ended = '$currentTime' WHERE kitchen_id = $kitchen_id";
-        if ($link->query($updateQuery) === TRUE) {
-            header("Location: ../../panel/kitchen-panel.php"); // Redirect back to kitchen panel
-
-            
-        } else {
-            // Error updating time_ended
-            echo "Error updating time_ended: " . $link->error;
-        }
-        
-    }
+if (!isset($_GET['action'], $_GET['kitchen_id']) || $_GET['action'] !== 'set_time_ended') {
+    header("Location: ../../panel/kitchen-panel.php?status=error&message=Invalid%20kitchen%20request");
+    exit();
 }
 
-/*
-if (isset($_GET['UndoUnshow'])) {
-        $selectQuery = "SELECT kitchen_id FROM Kitchen WHERE  ORDER BY time_ended DESC";
+$kitchenId = (int) $_GET['kitchen_id'];
+$loggedStaffId = db_get_logged_staff_id($link);
 
-        $selectResult = $link->query($selectQuery);
-        if ($selectResult && $selectResult->num_rows > 0) {
-            $row = $selectResult->fetch_assoc();
-            $time_submitted = $row['time_submitted'];
-            $updateQuery = "UPDATE Kitchen SET time_ended = NULL WHERE time_submitted = '$time_submitted'";
-            if ($link->query($updateQuery) === TRUE) {
-                // Time ended undone successfully
-            } else {
-                // Error undoing time_ended
-            }
-        }
+try {
+    db_begin_transaction_with_isolation($link, 'READ COMMITTED');
+
+    $kitchenStmt = $link->prepare(
+        "SELECT kitchen_id, item_id, quantity, time_ended
+         FROM Kitchen
+         WHERE kitchen_id = ?
+         FOR UPDATE"
+    );
+    $kitchenStmt->bind_param("i", $kitchenId);
+    $kitchenStmt->execute();
+    $kitchenResult = $kitchenStmt->get_result();
+    $kitchenRow = $kitchenResult->fetch_assoc();
+    $kitchenStmt->close();
+
+    if (!$kitchenRow) {
+        throw new RuntimeException('Kitchen ticket not found.');
     }
- * 
- */
 
+    if ($kitchenRow['time_ended'] !== null) {
+        $link->commit();
+        header("Location: ../../panel/kitchen-panel.php?status=success&message=Ticket%20already%20completed");
+        exit();
+    }
 
+    inventory_consume_menu_item(
+        $link,
+        $kitchenRow['item_id'],
+        (int) $kitchenRow['quantity'],
+        $kitchenId,
+        $loggedStaffId
+    );
+
+    $updateStmt = $link->prepare("UPDATE Kitchen SET time_ended = NOW() WHERE kitchen_id = ?");
+    $updateStmt->bind_param("i", $kitchenId);
+    $updateStmt->execute();
+    $updateStmt->close();
+
+    $link->commit();
+    header("Location: ../../panel/kitchen-panel.php?status=success&message=Kitchen%20ticket%20completed%20and%20inventory%20updated");
+    exit();
+} catch (Throwable $exception) {
+    $link->rollback();
+    header("Location: ../../panel/kitchen-panel.php?status=error&message=" . urlencode($exception->getMessage()));
+    exit();
+}
 ?>

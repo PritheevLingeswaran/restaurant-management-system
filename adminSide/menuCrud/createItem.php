@@ -2,6 +2,7 @@
 session_start(); // Ensure session is started
 ?>
 <?php  include '../inc/dashHeader.php'?>
+<?php include '../inc/legacyPanelLayout.php'; ?>
 <?php
 // Include config file
 require_once "../config.php";
@@ -23,19 +24,12 @@ if(isset($_POST['submit'])){
     
 }
 ?>
-<head>
-    <meta charset="UTF-8">
-    <title>Create New Item</title>
-    <style>
-        .wrapper{ width: 1300px; padding-left: 200px; padding-top: 80px  }
-    </style>
-</head>
-
- <div class="wrapper" >
-    <h3>Create New Item</h1>
-    <p>Please fill Items Information Properly </p>
+<div class="legacy-wrapper">
+    <div class="legacy-surface" style="max-width: 860px;">
+    <h2 class="pull-left">Create New Item</h2>
+    <p>Please fill items information properly.</p>
     
-<form method="POST" action="success_create.php" class="ht-600 w-50">
+<form method="POST" action="success_create.php">
     
         <div class="form-group">
             <label for="item_id" class="form-label">Item ID :</label>
@@ -65,7 +59,7 @@ if(isset($_POST['submit'])){
                 <option value="Bar Bites">Bar Bites</option>
                 <option value="House Dessert">House Dessert</option>
                 <option value="Salad">Salad</option>
-                <option value="Shoney Kid">Shoney Kid</option>
+                <option value="Mathew Kid">Mathew Kid</option>
                 <option value="Side Dishes">Side Dishes</option>
                 <option value="Classic Cocktails">Classic Cocktails</option>
                 <option value="Cold Pressed Juice">Cold Pressed Juice</option>
@@ -104,5 +98,6 @@ if(isset($_POST['submit'])){
         
     
  </form>
+ </div>
  </div>
  

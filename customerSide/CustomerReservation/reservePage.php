@@ -5,9 +5,11 @@ session_start();
 $reservationStatus = $_GET['reservation'] ?? null;
 $reservationId = $_GET['reservation_id'] ?? null;
 $reservationError = $_GET['message'] ?? '';
+$availabilityStatus = $_GET['availability_status'] ?? null;
+$availabilityMessage = $_GET['availability_message'] ?? '';
 $headCount = (int) ($_GET['head_count'] ?? 1);
 $defaultReservationDate = $_GET['reservation_date'] ?? date('Y-m-d');
-$defaultReservationTime = $_GET['reservation_time'] ?? '13:00:00';
+$defaultReservationTime = $_GET['reservation_time'] ?? date('H:i');
 $reservedTableIdList = $_GET['reserved_table_id'] ?? '0';
 
 $availableTimes = [];
@@ -40,13 +42,6 @@ if ($reservedTableIdList !== '') {
 include_once('../components/header.php');
 ?>
 
-<?php if ($reservationStatus === 'success' && $reservationId): ?>
-    <script>
-        alert("Table successfully reserved. Click OK to view your reservation receipt.");
-        window.location.href = "reservationReceipt.php?reservation_id=<?php echo urlencode((string) $reservationId); ?>";
-    </script>
-<?php endif; ?>
-
 <section class="reservation-hero">
     <div class="reservation-hero-copy">
         <p class="eyebrow">Table Booking</p>
@@ -56,6 +51,31 @@ include_once('../components/header.php');
         </p>
     </div>
 </section>
+
+<?php if ($reservationStatus === 'success' && $reservationId): ?>
+    <section class="reservation-shell" style="padding-top: 0;">
+        <div class="reservation-panel" style="max-width: 820px; margin: 0 auto;">
+            <div class="reservation-panel-header">
+                <span>Reservation Confirmed</span>
+                <h2>Your table has been reserved successfully.</h2>
+                <p>Reservation ID: <?php echo htmlspecialchars((string) $reservationId, ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+
+            <div class="reservation-alert" style="display:block;">
+                Your booking is confirmed. You can download the reservation receipt below.
+            </div>
+
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
+                <a class="btn reservation-btn-gold" href="reservationReceipt.php?reservation_id=<?php echo urlencode((string) $reservationId); ?>">
+                    Download Receipt
+                </a>
+                <a class="btn reservation-btn-dark" href="reservePage.php">
+                    Make Another Reservation
+                </a>
+            </div>
+        </div>
+    </section>
+<?php endif; ?>
 
 <section class="reservation-shell">
     <div class="reservation-grid">
@@ -69,7 +89,7 @@ include_once('../components/header.php');
             <form method="GET" action="availability.php" class="reservation-form-card">
                 <div class="form-group">
                     <label for="search_reservation_date">Select Date</label>
-                    <input class="form-control" type="date" id="search_reservation_date" name="reservation_date" required>
+                    <input class="form-control" type="date" id="search_reservation_date" name="reservation_date" value="<?php echo htmlspecialchars($defaultReservationDate, ENT_QUOTES, 'UTF-8'); ?>" required>
                 </div>
 
                 <div class="form-group">
@@ -77,7 +97,7 @@ include_once('../components/header.php');
                     <select name="reservation_time" id="search_reservation_time" class="form-control" required>
                         <option value="" selected disabled>Select a Time</option>
                         <?php foreach ($availableTimes as $time): ?>
-                            <option value="<?php echo htmlspecialchars($time, ENT_QUOTES, 'UTF-8'); ?>">
+                            <option value="<?php echo htmlspecialchars($time, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $defaultReservationTime === $time || $defaultReservationTime === substr($time, 0, 5) ? 'selected' : ''; ?>>
                                 <?php echo date('h:i A', strtotime($time)); ?>
                             </option>
                         <?php endforeach; ?>
@@ -96,6 +116,12 @@ include_once('../components/header.php');
                 <h2>Make Reservation</h2>
                 <p>Fill in the guest details and confirm the best available table.</p>
             </div>
+
+            <?php if ($availabilityMessage !== ''): ?>
+                <div class="reservation-alert" style="display:block; background: <?php echo $availabilityStatus === 'success' ? 'rgba(198, 154, 101, 0.18)' : 'rgba(86, 24, 24, 0.14)'; ?>; color: <?php echo $availabilityStatus === 'success' ? '#6a421a' : '#7a2222'; ?>;">
+                    <?php echo htmlspecialchars($availabilityMessage, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
 
             <?php if ($reservationError !== ''): ?>
                 <div class="reservation-alert">
@@ -140,9 +166,9 @@ include_once('../components/header.php');
                 <div class="form-group">
                     <label for="special_request">Special Request</label>
                     <textarea class="form-control" id="special_request" name="special_request" rows="4" placeholder="Anniversary setup, quiet corner, allergies, or any dining preference"></textarea>
-                </div>
+                        </div>
 
-                <button type="submit" class="btn reservation-btn-gold">Confirm Reservation</button>
+                <button type="submit" class="btn reservation-btn-gold" <?php echo empty($availableTables) ? 'disabled' : ''; ?>>Confirm Reservation</button>
             </form>
         </div>
     </div>

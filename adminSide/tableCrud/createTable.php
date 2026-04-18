@@ -2,6 +2,7 @@
 session_start(); // Ensure session is started
 ?>
 <?php  include '../inc/dashHeader.php'?>
+<?php include '../inc/legacyPanelLayout.php'; ?>
 <?php
 // Include config file
 require_once "../config.php";
@@ -24,19 +25,12 @@ function getNextAvailableTableID($conn) {
 $next_table_id = getNextAvailableTableID($conn);
 
 ?>
-<head>
-    <meta charset="UTF-8">
-    <title>Create New Table</title>
-    <style>
-        .wrapper{ width: 1300px; padding-left: 200px; padding-top: 80px  }
-    </style>
-</head>
-
- <div class="wrapper" >
-    <h3>Create New Table</h1>
-    <p>Please fill in the Table Information  </p>
+<div class="legacy-wrapper">
+    <div class="legacy-surface" style="max-width: 760px;">
+    <h2 class="pull-left">Create New Table</h2>
+    <p>Please fill in the Table Information</p>
     
-<form method="POST" action="succ_create_table.php" class="ht-600 w-50">
+<form method="POST" action="succ_create_table.php">
     
         <div class="form-group">
             <label for="table_id" class="form-label">Table ID :</label>
@@ -60,5 +54,6 @@ $next_table_id = getNextAvailableTableID($conn);
         
     
  </form>
+ </div>
  </div>
  

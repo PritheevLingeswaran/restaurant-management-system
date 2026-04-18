@@ -1,27 +1,43 @@
 <?php
+session_start();
 require_once '../../config.php';
 
-// Select the latest record from Kitchen
-$selectQuery = "SELECT kitchen_id FROM Kitchen WHERE time_ended IS NOT NULL ORDER BY time_ended DESC LIMIT 1";
-$result = $link->query($selectQuery);
+$loggedStaffId = db_get_logged_staff_id($link);
 
-if ($result && $result->num_rows > 0) {
+try {
+    db_begin_transaction_with_isolation($link, 'READ COMMITTED');
+
+    $selectStmt = $link->prepare(
+        "SELECT kitchen_id
+         FROM Kitchen
+         WHERE time_ended IS NOT NULL
+         ORDER BY time_ended DESC
+         LIMIT 1
+         FOR UPDATE"
+    );
+    $selectStmt->execute();
+    $result = $selectStmt->get_result();
     $row = $result->fetch_assoc();
-    $kitchen_id = $row['kitchen_id'];
+    $selectStmt->close();
 
-    // Update the record to set time_ended as NULL
-    $updateQuery = "UPDATE Kitchen SET time_ended = NULL WHERE kitchen_id = $kitchen_id";
-    if ($link->query($updateQuery) === TRUE) {
-        // Time ended undone successfully
-        header("Location: ../../panel/kitchen-panel.php"); // Redirect back to kitchen panel
-        exit();
-    } else {
-        // Error undoing time_ended
-        echo "Error undoing time_ended: " . $link->error;
+    if (!$row) {
+        throw new RuntimeException('No completed kitchen ticket is available to undo.');
     }
-} else {
-    // No records with time_ended set
-    echo "No records available to undo.";
-    echo '<a class="btn btn-danger" href="javascript:window.history.back();">Back</a>';
+
+    $kitchenId = (int) $row['kitchen_id'];
+    inventory_reverse_kitchen_consumption($link, $kitchenId, $loggedStaffId);
+
+    $updateStmt = $link->prepare("UPDATE Kitchen SET time_ended = NULL WHERE kitchen_id = ?");
+    $updateStmt->bind_param("i", $kitchenId);
+    $updateStmt->execute();
+    $updateStmt->close();
+
+    $link->commit();
+    header("Location: ../../panel/kitchen-panel.php?status=success&message=Last%20kitchen%20completion%20was%20reversed");
+    exit();
+} catch (Throwable $exception) {
+    $link->rollback();
+    header("Location: ../../panel/kitchen-panel.php?status=error&message=" . urlencode($exception->getMessage()));
+    exit();
 }
 ?>

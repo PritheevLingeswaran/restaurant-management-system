@@ -1,203 +1,239 @@
 <?php
-session_start(); // Ensure session is started
-?>
-<?php
+session_start();
 require_once '../config.php';
-include '../inc/dashHeader.php'; 
+include '../inc/dashHeader.php';
 
-$bill_id = $_GET['bill_id'];
-$table_id = $_GET['table_id'];
+$bill_id = (int) ($_GET['bill_id'] ?? 0);
+$table_id = (int) ($_GET['table_id'] ?? 0);
+$search = trim($_POST['search'] ?? '');
 
-function createNewBillRecord($table_id) {
-    global $link; // Assuming $link is your database connection
-    $lock_name = sprintf('table_bill_%d', (int) $table_id);
-    $bill_time = date('Y-m-d H:i:s');
+$menuQuery = "SELECT * FROM Menu ORDER BY item_id";
+if ($search !== '') {
+    $escaped = mysqli_real_escape_string($link, $search);
+    $menuQuery = "SELECT * FROM Menu
+                  WHERE item_type LIKE '%$escaped%'
+                     OR item_category LIKE '%$escaped%'
+                     OR item_name LIKE '%$escaped%'
+                     OR item_id LIKE '%$escaped%'
+                  ORDER BY item_id";
+}
+$menuResult = mysqli_query($link, $menuQuery);
 
-    try {
-        if (!db_acquire_named_lock($link, $lock_name, 10)) {
-            throw new Exception('Unable to create a bill for this table right now.');
-        }
-
-        db_begin_transaction_with_isolation($link, 'SERIALIZABLE');
-
-        $existing_stmt = $link->prepare("SELECT bill_id FROM Bills WHERE table_id = ? AND payment_time IS NULL ORDER BY bill_time DESC LIMIT 1 FOR UPDATE");
-        $existing_stmt->bind_param("i", $table_id);
-        $existing_stmt->execute();
-        $existing_result = $existing_stmt->get_result();
-        $existing_bill = $existing_result->fetch_assoc();
-        $existing_stmt->close();
-
-        if ($existing_bill) {
-            $link->commit();
-            return (int) $existing_bill['bill_id'];
-        }
-
-        $insert_stmt = $link->prepare("INSERT INTO Bills (table_id, bill_time) VALUES (?, ?)");
-        $insert_stmt->bind_param("is", $table_id, $bill_time);
-        $insert_stmt->execute();
-        $bill_id = $insert_stmt->insert_id;
-        $insert_stmt->close();
-        $link->commit();
-
-        return $bill_id;
-    } catch (Exception $e) {
-        $link->rollback();
-        return false;
-    } finally {
-        db_release_named_lock($link, $lock_name);
+$payment_time_query = "SELECT payment_time FROM Bills WHERE bill_id = '$bill_id'";
+$payment_time_result = mysqli_query($link, $payment_time_query);
+$has_payment_time = false;
+if ($payment_time_result && mysqli_num_rows($payment_time_result) > 0) {
+    $payment_time_row = mysqli_fetch_assoc($payment_time_result);
+    if (!empty($payment_time_row['payment_time'])) {
+        $has_payment_time = true;
     }
 }
 
-
+$cart_query = "SELECT bi.*, m.item_name, m.item_price
+               FROM bill_items bi
+               JOIN Menu m ON bi.item_id = m.item_id
+               WHERE bi.bill_id = '$bill_id'";
+$cart_result = mysqli_query($link, $cart_query);
+$cart_total = 0;
+$tax = 0.1;
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
     <link href="../css/pos.css" rel="stylesheet" />
+    <style>
+        .order-layout-shell {
+            width: calc(100% - 240px);
+            margin-left: 240px;
+            padding: 4.75rem 1.5rem 2.5rem;
+        }
+
+        .order-layout-inner {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+            padding: 1.75rem;
+        }
+
+        .order-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .order-panel h2,
+        .order-panel h3 {
+            margin: 0 0 1rem;
+        }
+
+        .order-toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) auto auto;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .order-scroll {
+            max-height: 45rem;
+            overflow: auto;
+        }
+
+        .order-scroll.cart-scroll {
+            max-height: 22rem;
+        }
+
+        .order-table {
+            margin-bottom: 0;
+        }
+
+        .order-menu-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        .order-menu-table th:nth-child(1),
+        .order-menu-table td:nth-child(1) {
+            width: 80px;
+        }
+
+        .order-menu-table th:nth-child(2),
+        .order-menu-table td:nth-child(2) {
+            width: 38%;
+        }
+
+        .order-menu-table th:nth-child(3),
+        .order-menu-table td:nth-child(3) {
+            width: 18%;
+        }
+
+        .order-menu-table th:nth-child(4),
+        .order-menu-table td:nth-child(4) {
+            width: 18%;
+            white-space: nowrap;
+        }
+
+        .order-menu-table th:nth-child(5),
+        .order-menu-table td:nth-child(5) {
+            width: 22%;
+        }
+
+        .order-table td,
+        .order-table th {
+            vertical-align: top;
+        }
+
+        .order-add-form {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .order-summary {
+            margin-top: 1.25rem;
+        }
+
+        .order-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        @media (max-width: 1200px) {
+            .order-layout-shell {
+                width: 100%;
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .order-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .order-toolbar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-6 order-md-1 m-1" id="item-select-section ">
-                <div class="container-fluid pt-4 pl-500 row" style=" margin-left: 10rem;width: 81% ;">
-                    <div class="mt-5 mb-2">
-                    <h3 class="pull-left">Food & Drinks</h3>
-                        
-                    </div>
-                    <div class="mb-3">
-                        <form method="POST" action="#">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <input type="text" required="" id="search" name="search" class="form-control" placeholder="Search Food & Drinks">
-                                </div>
-                                <div class="col-md-3">
-                                    <button type="submit" class="btn btn-dark">Search</button>
-                                </div>
-                                <div class="col" style="text-align: right;" >
-                                    <a href="orderItem.php?bill_id=<?php echo $bill_id; ?>&table_id=<?php echo $table_id; ?>" class="btn btn-light">Show All</a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div style="max-height: 45rem;overflow-y: auto;">
-                        <?php
-                        // Include config file
-                        
-                        require_once "../config.php";
-                        if (isset($_POST['search'])) {
-                            if (!empty($_POST['search'])) {
-                                $search = $_POST['search'];
+    <div class="order-layout-shell">
+        <div class="order-layout-inner">
+            <div class="order-grid">
+                <div class="order-panel">
+                    <h2>Food & Drinks</h2>
+                    <form method="POST" action="#" class="order-toolbar">
+                        <input type="text" id="search" name="search" class="form-control" placeholder="Search Food & Drinks" value="<?php echo htmlspecialchars($search); ?>">
+                        <button type="submit" class="btn btn-dark">Search</button>
+                        <a href="orderItem.php?bill_id=<?php echo $bill_id; ?>&table_id=<?php echo $table_id; ?>" class="btn btn-light">Show All</a>
+                    </form>
 
-                                $query = "SELECT * FROM Menu WHERE item_type LIKE '%$search%' OR item_category LIKE '%$search%' OR item_name LIKE '%$search%' OR item_id LIKE '%$search%' ORDER BY item_id;";
-                                $result = mysqli_query($link, $query);
-                            }else{
-                                // Default query to fetch all menu items
-                                $query = "SELECT * FROM Menu ORDER BY item_id;";
-                                $result = mysqli_query($link, $query);
-                            }
-                        } else {
-                            // Default query to fetch all menu items
-                            $query = "SELECT * FROM Menu ORDER BY item_id;";
-                            $result = mysqli_query($link, $query);
-                        }
-                        $bill_id = $_GET['bill_id'];
-                        if ($result) {
-                            if (mysqli_num_rows($result) > 0) {
-                                echo '<table class="table table-bordered table-striped">';
-                                echo "<thead>";
-                                echo "<tr>";
-                                echo "<th>ID</th>";
-                                echo "<th>Item Name</th>";
-                                echo "<th>Category</th>";
-                                echo "<th>Price</th>";
-                                echo "<th>Add</th>";
-                                echo "</tr>";
-                                echo "</thead>";
-                                echo "<tbody>";
-                                // ...
-
-                                while ($row = mysqli_fetch_array($result)) {
-                                    echo "<tr>";
-                                    echo "<td>" . $row['item_id'] . "</td>";
-                                    echo "<td>" . $row['item_name'] . "</td>";
-                                    echo "<td>" . $row['item_category'] . "</td>";
-                                    echo "<td>" . number_format($row['item_price'],2) . "</td>";
-
-                                    // Check if the bill has been paid
-                                    $payment_time_query = "SELECT payment_time FROM Bills WHERE bill_id = '$bill_id'";
-                                    $payment_time_result = mysqli_query($link, $payment_time_query);
-                                    $has_payment_time = false;
-
-                                    if ($payment_time_result && mysqli_num_rows($payment_time_result) > 0) {
-                                        $payment_time_row = mysqli_fetch_assoc($payment_time_result);
-                                        if (!empty($payment_time_row['payment_time'])) {
-                                            $has_payment_time = true;
-                                        }
-                                    }
-
-                                    // Display the "Add to Cart" button if the bill hasn't been paid
-                                    if (!$has_payment_time) {
-                                        echo '<td><form method="get" action="addItem.php">'
-                                            . '<input type="text" hidden name= "table_id" value="' . $table_id . '">'
-                                            . '<input type="text" name= "item_id" value=' . $row['item_id'] . ' hidden>'
-                                            . '<input type="number" name= "bill_id" value=' . $bill_id . ' hidden>'
-                                            . '<input type="number" name="quantity" style="width:120px" placeholder="1 to 1000" required min="1" max="1000">'
-                                            . '<input type="hidden" name="addToCart" value="1">'
-                                            . '<button type="submit" class="btn btn-primary">Add to Cart</button>';
-                                        echo "</form></td>";
-                                    } else {
-                                        echo '<td>Bill Paid</td>';
-                                    }
-
-                                    echo "</tr>";
-                                }
-
-                                // ...
-
-                                echo "</tbody>";
-                                echo "</table>";
-                            } else {
-                                echo '<div class="alert alert-danger"><em>No menu items were found.</em></div>';
-                            }
-                        } else {
-                            echo "Oops! Something went wrong. Please try again later.";
-                        }
-                        // Close connection
-                        
-                        ?>
-                     </div>
-
-                </div>
-            </div>
-            <div class="col-md-4 order-md-2 m-1" id="cart-section" >
-                <div class="container-fluid pt-5 pl-600 pr-6 row mt-3" style="max-width: 200%; width:150%;">
-                    <div class="cart-section" >
-                        <h3>Cart</h3>
-                        <table class="table table-bordered">
-                            <thead>
-                            <tr>
-                                <th>Item ID</th>
-                                <th>Item Name</th>
-                                <th>Price</th>
-                                <th>Quantity</th>
-                                <th>Total</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            
-                            <div style="max-height: 40rem;overflow-y: auto;">
+                    <div class="order-scroll">
+                        <?php if ($menuResult && mysqli_num_rows($menuResult) > 0): ?>
+                            <table class="table table-bordered table-striped order-table order-menu-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Item Name</th>
+                                        <th>Category</th>
+                                        <th>Price</th>
+                                        <th>Add</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                <?php
-                                // Query to fetch cart items for the given bill_id
-                                $cart_query = "SELECT bi.*, m.item_name, m.item_price FROM bill_items bi
-                                               JOIN Menu m ON bi.item_id = m.item_id
-                                               WHERE bi.bill_id = '$bill_id'";
-                                $cart_result = mysqli_query($link, $cart_query);
-                                $cart_total = 0;//cart total
-                                $tax = 0.1; // 10% tax rate
+                                    <?php while ($row = mysqli_fetch_array($menuResult)): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($row['item_id']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                                            <td><?php echo htmlspecialchars($row['item_category']); ?></td>
+                                            <td>Rs <?php echo number_format((float) $row['item_price'], 2); ?></td>
+                                            <td>
+                                                <?php if (!$has_payment_time): ?>
+                                                    <form method="get" action="addItem.php" class="order-add-form">
+                                                        <input type="hidden" name="table_id" value="<?php echo $table_id; ?>">
+                                                        <input type="hidden" name="item_id" value="<?php echo htmlspecialchars($row['item_id']); ?>">
+                                                        <input type="hidden" name="bill_id" value="<?php echo $bill_id; ?>">
+                                                        <input type="number" name="quantity" class="form-control" placeholder="1 to 1000" required min="1" max="1000">
+                                                        <input type="hidden" name="addToCart" value="1">
+                                                        <button type="submit" class="btn btn-primary">Add to Cart</button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    Bill Paid
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        <?php else: ?>
+                            <div class="alert alert-danger mb-0"><em>No menu items were found.</em></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
-                                if ($cart_result && mysqli_num_rows($cart_result) > 0) {
-                                    while ($cart_row = mysqli_fetch_assoc($cart_result)) {
+                <div class="order-panel">
+                    <h2>Cart</h2>
+                    <div class="order-scroll cart-scroll">
+                        <table class="table table-bordered order-table">
+                            <thead>
+                                <tr>
+                                    <th>Item ID</th>
+                                    <th>Item Name</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($cart_result && mysqli_num_rows($cart_result) > 0): ?>
+                                    <?php while ($cart_row = mysqli_fetch_assoc($cart_result)): ?>
+                                        <?php
                                         $item_id = $cart_row['item_id'];
                                         $item_name = $cart_row['item_name'];
                                         $item_price = $cart_row['item_price'];
@@ -205,111 +241,69 @@ function createNewBillRecord($table_id) {
                                         $total = $item_price * $quantity;
                                         $bill_item_id = $cart_row['bill_item_id'];
                                         $cart_total += $total;
-                                        echo '<tr>';
-                                        echo '<td>' . $item_id . '</td>';
-                                        echo '<td>' . $item_name . '</td>';
-                                        echo '<td>Rs ' . number_format($item_price,2) . '</td>';
-                                        echo '<td>' . $quantity . '</td>';
-                                        echo '<td>Rs ' . number_format($total,2) . '</td>';
-                                        // Check if the bill has been paid
-                                        $payment_time_query = "SELECT payment_time FROM Bills WHERE bill_id = '$bill_id'";
-                                        $payment_time_result = mysqli_query($link, $payment_time_query);
-                                        $has_payment_time = false;
-
-                                        if ($payment_time_result && mysqli_num_rows($payment_time_result) > 0) {
-                                            $payment_time_row = mysqli_fetch_assoc($payment_time_result);
-                                            if (!empty($payment_time_row['payment_time'])) {
-                                                $has_payment_time = true;
-                                            }
-                                        }
-
-                                        // Display the "Delete" button if the bill hasn't been paid
-                                        if (!$has_payment_time) {
-                                            echo '<td><a class="btn btn-dark" href="deleteItem.php?bill_id=' . $bill_id . '&table_id=' . $table_id . '&bill_item_id=' . $bill_item_id . '&item_id=' . $item_id .'">Delete</a></td>';
-                                        } else {
-                                            echo '<td>Bill Paid</td>';
-                                        }
-                                        echo '</tr>';
-                                    }
-                                } else {
-                                    echo '<tr><td colspan="6">No Items in Cart.</td></tr>';
-                                }
-                                ?>
-                                </tbody>
-                            </div>
+                                        ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($item_id); ?></td>
+                                            <td><?php echo htmlspecialchars($item_name); ?></td>
+                                            <td>Rs <?php echo number_format((float) $item_price, 2); ?></td>
+                                            <td><?php echo (int) $quantity; ?></td>
+                                            <td>Rs <?php echo number_format((float) $total, 2); ?></td>
+                                            <td>
+                                                <?php if (!$has_payment_time): ?>
+                                                    <a class="btn btn-dark btn-sm" href="deleteItem.php?bill_id=<?php echo $bill_id; ?>&table_id=<?php echo $table_id; ?>&bill_item_id=<?php echo $bill_item_id; ?>&item_id=<?php echo urlencode($item_id); ?>">Delete</a>
+                                                <?php else: ?>
+                                                    Bill Paid
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="6">No Items in Cart.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
                         </table>
-                        <hr>
-                        <div class="table-responsive">
-    <table class="table table-bordered ">
-        <tbody>
-            <tr>
-                <td><strong>Cart Total</strong></td>
-                <td>Rs <?php echo number_format($cart_total, 2); ?></td>
-            </tr>
-            <tr>
-                <td><strong>Cart Taxed</strong></td>
-                <td>Rs <?php echo number_format($cart_total * $tax, 2); ?></td>
-            </tr>
-            <tr>
-                <td><strong>Grand Total</strong></td>
-                <td>Rs <?php echo number_format(($tax * $cart_total) + $cart_total, 2); ?></td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-                        <?php 
-                        
-                        //echo "Cart Total: Rs " . $cart_total;
-                        //echo "<br>Cart Taxed: Rs " . $cart_total * $tax;
-                        //echo "<br>Grand Total: Rs " . $tax * $cart_total + $cart_total;
-                      
-                        // Check if the payment time record exists for the bill
-                        $payment_time_query = "SELECT payment_time FROM Bills WHERE bill_id = '$bill_id'";
-                        $payment_time_result = mysqli_query($link, $payment_time_query);
-                        $has_payment_time = false;
-
-                        if ($payment_time_result && mysqli_num_rows($payment_time_result) > 0) {
-                            $payment_time_row = mysqli_fetch_assoc($payment_time_result);
-                            if (!empty($payment_time_row['payment_time'])) {
-                                $has_payment_time = true;
-                            }
-                        }
-
-                        // If payment time record exists, show the "Print Receipt" button
-                        if ($has_payment_time) {
-                            echo '<div>';
-                            echo '<div class="alert alert-success" role="alert">
-                                    Bill has already been paid.
-                                  </div>';
-                            echo '<br><a href="receipt.php?bill_id=' . $bill_id . '" class="btn btn-light">Print Receipt <span class="fa fa-receipt text-black"></span></a></div>';
-                            
-
-                            
-                        } elseif(($tax * $cart_total + $cart_total) > 0) {
-                            echo '<br><a href="idValidity.php?bill_id=' . $bill_id . '" class="btn btn-success">Pay Bill</a>';
-                        } else {
-                            echo '<br><h3>Add Item To Cart to Proceed</h3>';
-                        }
-
-                        
-                        
-                        ?>
                     </div>
-                    <?php 
-                       echo '<form class="mt-3" action="newCustomer.php" method="get">'; // Add this form element
-                        echo '<input type="hidden" name="table_id" value="' . $table_id . '">';
-                        echo '<button type="submit" name="new_customer" value="true" class="btn btn-warning">New Customer</button>';
-                        echo '</form>';
 
-            
+                    <div class="order-summary table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Cart Total</strong></td>
+                                    <td>Rs <?php echo number_format($cart_total, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cart Taxed</strong></td>
+                                    <td>Rs <?php echo number_format($cart_total * $tax, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Grand Total</strong></td>
+                                    <td>Rs <?php echo number_format(($tax * $cart_total) + $cart_total, 2); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
+                    <div class="order-actions">
+                        <?php if ($has_payment_time): ?>
+                            <div class="alert alert-success mb-0">Bill has already been paid.</div>
+                            <a href="receipt.php?bill_id=<?php echo $bill_id; ?>" class="btn btn-light">Print Receipt</a>
+                        <?php elseif (($tax * $cart_total + $cart_total) > 0): ?>
+                            <a href="idValidity.php?bill_id=<?php echo $bill_id; ?>" class="btn btn-success">Pay Bill</a>
+                        <?php else: ?>
+                            <h3 class="h4 mb-0">Add Item To Cart to Proceed</h3>
+                        <?php endif; ?>
 
-
-                    ?>
+                        <form action="newCustomer.php" method="get" class="mb-0">
+                            <input type="hidden" name="table_id" value="<?php echo $table_id; ?>">
+                            <button type="submit" name="new_customer" value="true" class="btn btn-warning">New Customer</button>
+                        </form>
+                    </div>
                 </div>
-
             </div>
         </div>
     </div>
+</body>
+</html>
 <?php include '../inc/dashFooter.php'; ?>

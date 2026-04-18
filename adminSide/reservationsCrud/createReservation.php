@@ -2,6 +2,7 @@
 session_start(); // Ensure session is started
 ?>
 <?php  include '../inc/dashHeader.php'?>
+<?php include '../inc/legacyPanelLayout.php'; ?>
 
 <?php
 require_once '../config.php';
@@ -14,22 +15,14 @@ if ($reservationStatus === 'success') {
 $head_count = $_GET['head_count'] ?? 1;
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Reservation </title>    
-    <style>
-        .wrapper{ width: 1300px; padding-left: 200px; padding-top: 80px  }
-    </style>
-</head>
-<body>
-    <div class="wrapper">
-        <h3>Search for Available Time</h3>
+<div class="legacy-wrapper">
+    <div class="legacy-surface" style="max-width: 860px;">
+        <h2 class="pull-left">Create Reservation</h2>
+        <p>Search for an available time first, then complete the reservation details below.</p>
+        <h3 class="h4" style="margin-top:1.5rem;">Search for Available Time</h3>
         
         <div id="Search Table">
-        <form id="reservation-form" method="GET" action="availability.php" class="ht-600 w-50">
+        <form id="reservation-form" method="GET" action="availability.php">
             <div class="form-group">
                 <label for="reservation_date" >Select Date</label><br>
                 <input class="form-control" type="date" id="reservation_date" name="reservation_date" required><br>
@@ -68,13 +61,13 @@ $head_count = $_GET['head_count'] ?? 1;
         </div>
         <!-- AFTER SEARCH -->
         <div id="insert-reservation-into-table"><br>
-                    <h3>Make the Reservation</h3>
+                    <h3 class="h4">Make the Reservation</h3>
                     
-                    <form id="reservation-form" method="POST" action="insertReservation.php" class="ht-600 w-50">
+                    <form id="reservation-form" method="POST" action="insertReservation.php">
                         
                         <div class="form-group">
                             <label for="customer_name">Customer Name</label><br>
-                            <input type="text" id="customer_name" name="customer_name" class="form-control" required placeholder="Johnny Hatsoff"><br>
+                            <input type="text" id="customer_name" name="customer_name" class="form-control" required placeholder="abc"><br>
                         </div>
                         <?php
                         $defaultReservationDate = $_GET['reservation_date'] ?? date("Y-m-d");
@@ -119,7 +112,7 @@ $head_count = $_GET['head_count'] ?? 1;
                         
                         <div class="form-group" >
                             <label for="special_request" >Special request:</label><br>
-                            <input type="text" id="special_request" name="special_request" class="ht-600 w-50" placeholder="One baby chair"><br>
+                            <input type="text" id="special_request" name="special_request" class="form-control" placeholder="One baby chair"><br>
                         </div>
                         
                         <div class="form-group mt-2">
@@ -128,6 +121,8 @@ $head_count = $_GET['head_count'] ?? 1;
                         
                     </form>
                 </div>
+    </div>
+</div>
     <script>
         const viewDateInput = document.getElementById("reservation_date");
         const makeDateInput = document.getElementById("reservation_date");
@@ -136,6 +131,3 @@ $head_count = $_GET['head_count'] ?? 1;
             makeDateInput.value = this.value;
         });
     </script>
-</body>
-
-</html>
