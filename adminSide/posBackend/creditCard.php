@@ -75,7 +75,7 @@ $tax = 0.1;
         <?php
         if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $account_holder_name = $_POST['cardName'];
-            $card_number = $_POST['cardNumber'];
+            $card_number = str_replace('-', '', $_POST['cardNumber']);
             $expiry_date = $_POST['expiryDate'];
             $security_code = $_POST['securityCode'];
             $bill_id = $_GET['bill_id'];

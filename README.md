@@ -40,8 +40,12 @@ A full-stack restaurant management system built with **PHP**, **MySQL**, **HTML/
 <p align="center">
   <img src="images/homepage.png" width="400" alt="Homepage"> &nbsp;
   <img src="images/menu.png" width="400" alt="Menu"> <br><br>
-  <img src="images/reservations.png" width="400" alt="Reservations"> &nbsp;
-  <img src="images/tables.png" width="400" alt="Tables"> <br><br>
+  <img src="images/customer%20login.png" width="400" alt="Customer Login"> &nbsp;
+  <img src="images/reservations.png" width="400" alt="Reservations"> <br><br>
+  <img src="images/tables.png" width="400" alt="Tables"> &nbsp;
+  <img src="images/kitchenorders.png" width="400" alt="Kitchen Orders"> <br><br>
+  <img src="images/paymentpage.png" width="400" alt="Payment Page"> &nbsp;
+  <img src="images/payment%20reciept.png" width="400" alt="Payment Receipt"> <br><br>
   <img src="images/revenue.png" width="400" alt="Revenue Analytics"> &nbsp;
   <img src="images/staff.png" width="400" alt="Staff Management"> <br><br>
   <img src="images/supplier.png" width="400" alt="Supplier Management"> &nbsp;

@@ -121,7 +121,7 @@ $tax = 0.1;
             </div>
             <div class="form-group mb-3">
                 <label for="cardField">Card Number</label>
-                <input type="text" id="cardField" name="cardNumber" maxlength="19" minlength="15" class="form-control" placeholder="1234567890123456 (15 to 19 digits)" required>
+                <input type="text" id="cardField" name="cardNumber" maxlength="19" minlength="19" class="form-control" placeholder="XXXX-XXXX-XXXX-XXXX" pattern="\d{4}-\d{4}-\d{4}-\d{4}" title="Card number must be 16 digits in XXXX-XXXX-XXXX-XXXX format" required>
             </div>
             <div class="form-group mb-3">
                 <label for="expiryDate">Expiry Date</label>
@@ -150,3 +150,49 @@ $tax = 0.1;
 </div>
 
 <?php include '../inc/dashFooter.php'; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var cardField = document.getElementById('cardField');
+    
+    cardField.addEventListener('input', function(e) {
+        // Strip all non-digit characters
+        var digits = this.value.replace(/\D/g, '');
+        
+        // Limit to 16 digits
+        digits = digits.substring(0, 16);
+        
+        // Format as XXXX-XXXX-XXXX-XXXX
+        var formatted = '';
+        for (var i = 0; i < digits.length; i++) {
+            if (i > 0 && i % 4 === 0) {
+                formatted += '-';
+            }
+            formatted += digits[i];
+        }
+        
+        this.value = formatted;
+    });
+
+    // Prevent non-numeric input (allow backspace, delete, arrow keys, tab)
+    cardField.addEventListener('keypress', function(e) {
+        var char = String.fromCharCode(e.which || e.keyCode);
+        if (!/\d/.test(char)) {
+            e.preventDefault();
+        }
+    });
+
+    // Validate on form submit
+    var form = cardField.closest('form');
+    form.addEventListener('submit', function(e) {
+        var value = cardField.value;
+        var pattern = /^\d{4}-\d{4}-\d{4}-\d{4}$/;
+        if (!pattern.test(value)) {
+            e.preventDefault();
+            alert('Card number must be exactly 16 digits in XXXX-XXXX-XXXX-XXXX format.');
+            cardField.focus();
+        }
+    });
+});
+</script>
+
