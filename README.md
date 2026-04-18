@@ -38,18 +38,18 @@ A full-stack restaurant management system built with **PHP**, **MySQL**, **HTML/
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="images/homepage.png" width="400" alt="Homepage"> &nbsp;
-  <img src="images/menu.png" width="400" alt="Menu"> <br><br>
-  <img src="images/customer%20login.png" width="400" alt="Customer Login"> &nbsp;
-  <img src="images/reservations.png" width="400" alt="Reservations"> <br><br>
-  <img src="images/tables.png" width="400" alt="Tables"> &nbsp;
-  <img src="images/kitchenorders.png" width="400" alt="Kitchen Orders"> <br><br>
-  <img src="images/paymentpage.png" width="400" alt="Payment Page"> &nbsp;
-  <img src="images/payment%20reciept.png" width="400" alt="Payment Receipt"> <br><br>
-  <img src="images/revenue.png" width="400" alt="Revenue Analytics"> &nbsp;
-  <img src="images/staff.png" width="400" alt="Staff Management"> <br><br>
-  <img src="images/supplier.png" width="400" alt="Supplier Management"> &nbsp;
-  <img src="images/customers.png" width="400" alt="Customers Management">
+  <img src="images/homepage.png" width="48%" alt="Homepage">
+  <img src="images/menu.png" width="48%" alt="Menu"> <br><br>
+  <img src="images/customer%20login.png" width="48%" alt="Customer Login">
+  <img src="images/reservations.png" width="48%" alt="Reservations"> <br><br>
+  <img src="images/tables.png" width="48%" alt="Tables">
+  <img src="images/kitchenorders.png" width="48%" alt="Kitchen Orders"> <br><br>
+  <img src="images/paymentpage.png" width="48%" alt="Payment Page">
+  <img src="images/payment%20reciept.png" width="48%" alt="Payment Receipt"> <br><br>
+  <img src="images/revenue.png" width="48%" alt="Revenue Analytics">
+  <img src="images/staff.png" width="48%" alt="Staff Management"> <br><br>
+  <img src="images/supplier.png" width="48%" alt="Supplier Management">
+  <img src="images/customers.png" width="48%" alt="Customers Management">
 </p>
 
 ---
