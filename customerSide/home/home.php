@@ -1,195 +1,259 @@
-<?php include_once('../components/header.php')?>
-<!-- Hero Section with Video Background and Text Overlay -->
-<section id="hero" style="position: relative;">
-    <video autoplay loop muted playsinline poster="your-poster-image.jpg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
-        <source src="../image/SteakOnGrillCloseup.mp4" type="video/mp4">
-        <!-- Add additional source elements for 
-        1.  SteakOnGrillCloseup
+<?php include_once('../components/header.php'); ?>
+<?php
+function groupMenuItems(array $items): array
+{
+    $grouped = [];
 
-        other video formats if needed -->
-    </video>
-    <div class="hero container" style="position: relative; z-index: 1;">
-        <div>
-            <h1><strong><h1 class="text-center" style="font-family:Copperplate; color:whitesmoke;"> Boundless</h1><span></span></strong></h1>
-            <h1><strong style="color:white;">DINING & BAR<span></span></strong></h1>
-            <a href="#projects" type="button" class="cta">MENU</a>
-        </div>
-    </div>
-</section>
-<!-- End Hero Section -->
-  
-  
-  
-  <!-- menu Section -->
-  <section id="projects">
-    <div class="projects container">
-      <div class="projects-header">
-        <h1 class="section-title">Me<span>n</span>u</h1>
-      </div>
-     
-        
-       <select style="text-align:center;" id="menu-category" class="menu-category">
-        <option value="blue">ALL ITEMS</option>
-        <option value="yellow">MAIN DISHES</option>
-        <option value="red">SIDE DISHES</option>
-        <option value="green">DRINKS</option>
-      </select>
-        
-    <div class="yellow msg"> 
-     
-        <div></div>
-      <div class="mainDish">
-           <h1 style="text-align:center;">MAIN DISHES</h1>
-          <?php foreach ($mainDishes as $item): ?>
-      <p>
-        <span class="item-name"> <strong><?php echo $item['item_name']; ?></strong></span>
-        <span class="item-price">Rs <?php echo $item['item_price']; ?></span><br>
-        <span class="item_type"><i><?php echo $item['item_type']; ?></i></span>
-        <hr>
-        
-      </p>
-    <?php endforeach; ?>
-      </div>
-    </div>
-      
-      
-    <div class="red msg">
-        <div></div>
-      <div class="sideDish">
-           <h1 style="text-align:center">SIDE DISHES</h1>
-          <?php foreach ($sides as $item): ?>
-      <p>
-        <span class="item-name"> <strong><?php echo $item['item_name']; ?></strong></span>
-        <span class="item-price">Rs <?php echo $item['item_price']; ?></span><br>
-        <span class="item_type"><i><?php echo $item['item_type']; ?></i></span>
-        <hr>
-      </p>
-    <?php endforeach; ?>
-      </div>
-    </div>
-        
-      
-      
-    <div class="green msg">
-        <div></div>
-      <div class="drinks">
-           <h1 style="text-align:center">DRINKS</h1>
-          <?php foreach ($drinks as $item): ?>
-      <p>
-        <span class="item-name"> <strong><?php echo $item['item_name']; ?></strong></span>
-        <span class="item-price">Rs <?php echo $item['item_price']; ?></span><br>
-        <span class="item_type"><i><?php echo $item['item_type']; ?></i></span>
-        <hr>
-      </p>
-    <?php endforeach; ?>
-      </div>
-    </div>
-      
-      
-       <div class="blue msg">
-          
-      <div class="mainDish">
-           <h1 style="text-align:center">MAIN DISHES</h1>
-          <?php foreach ($mainDishes as $item): ?>
-      <p>
-        <span class="item-name"> <strong><?php echo $item['item_name']; ?></strong></span>
-        <span class="item-price">Rs <?php echo $item['item_price']; ?></span><br>
-        <span class="item_type"><i><?php echo $item['item_type']; ?></i></span>
-        <hr>
-      </p>
-    <?php endforeach; ?>
-      </div>
-             
-           
-     
-      <div class="sideDish">
-           <h1 style="text-align:center">SIDE DISHES</h1>
-          <?php foreach ($sides as $item): ?>
-      <p>
-        <span class="item-name"> <strong><?php echo $item['item_name']; ?></strong></span>
-        <span class="item-price">Rs <?php echo $item['item_price']; ?></span><br>
-        <span class="item_type"><i><?php echo $item['item_type']; ?></i></span>
-        <hr>
-      </p>
-    <?php endforeach; ?>
-      </div>
-            
-      
-      <div class="drinks">
-           <h1 style="text-align:center">DRINKS</h1>
-          <?php foreach ($drinks as $item): ?>
-      <p>
-        <span class="item-name"> <strong><?php echo $item['item_name']; ?></strong></span>
-        <span class="item-price">Rs <?php echo $item['item_price']; ?></span><br>
-        <span class="item_type"><i><?php echo $item['item_type']; ?></i></span>
-        <hr>
-      </p>
-    <?php endforeach; ?>
-      </div>
-          
-      </div>
-    </div>
-  </section>
-  <!-- End menu Section -->
+    foreach ($items as $item) {
+        $grouped[$item['item_type']][] = $item;
+    }
 
+    return $grouped;
+}
 
-  
-  <!-- About Section -->
-<section id="about" ">
-  <div class="about container">
-    <div class="col-right">
-        <h1 class="section-title" >About <span>Us</span></h1>
-        <h2>Boundless Company History:</h2>
- <p>Boundless is a well-established Western food establishment in the city's heart. Boundless has become a popular choice for customers looking to celebrate special occasions or simply enjoy a relaxing meal, with a focus on providing delicious meals and a friendly dining experience.
- </p>
- <p>Boundless, as a Western restaurant, offers a diverse menu that caters to a variety of tastes. The menu includes a wide range of options such as bar bites, salads, soups and a variety of main courses. Customers can savour succulent options such as steak and ribs, chicken, lamb, seafood, burgers and sandwiches, pasta, and a variety of delectable side dishes. The menu has been carefully curated to offer a balance of classic favourites and innovative creations, ensuring that every palate is satisfied.
- </p>
- <p>Boundless's ability to accommodate customers is one of its distinguishing features. Boundless strives to create an inviting and comfortable dining environment, whether guests prefer to walk in or make reservations in advance. The restaurant recognises the significance of creating memorable experiences, particularly for those celebrating special occasions. Boundless is a popular choice for families, couples, and groups of friends because of its attentive staff and welcoming atmosphere.
- </p>
- <p>Boundless has an inviting outdoor bar that is open seven days a week from 11:00 AM to 10:00 PM in addition to the indoor dining area.This outdoor space provides a relaxed setting for patrons to unwind and socialise while sipping on their favourite drinks and nibbling on bar bites. The bar serves a wide range of beverages, including cocktails, wines, beers and non-alcoholic options.
- </p>
-    
-      </div>
-    </div>
-  </section>
-  <!-- End About Section -->
-  
-  
- <!-- Contact Section -->
-<section id="contact">
-  <div class="contact container">
-    <div>
-      <h1 class="section-title">Contact <span>info</span></h1>
-    </div>
-    <div class="contact-items">
-      <div class="contact-item contact-item-bg">
-        <div class="contact-info">
-          <div class='icon'><img src="../image/icons8-phone-100.png" alt=""/></div>
-          <h1>Phone</h1>
-          <h2>+60 886 8786</h2>
-        </div>
-      </div>
-      
-      <div class="contact-item contact-item-bg"> 
-        <div class="contact-info">
-          <div class='icon'><img src="../image/icons8-email-100.png" alt=""/></div>
-          <h1>Email</h1>
-          <h2>BoundlessDiningBar@gmail.com</h2> 
-        </div>
-      </div>
-      
-      <div class="contact-item contact-item-bg">
-        <div class="contact-info">
-          <div class='icon'> <img src="../image/icons8-home-address-100.png" alt=""/></div>
-          <h1>Address</h1>
-          <h2>Lot 62, Third Floor, Jalan Newton, No.345, Lorong Kluang, Kota Kinabalu, Malaysia, 88000</h2>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End Contact Section -->
-
-<?php 
-include_once('../components/footer.php');
+$groupedMainDishes = groupMenuItems($mainDishes);
+$groupedSides = groupMenuItems($sides);
+$groupedDrinks = groupMenuItems($drinks);
 ?>
+
+<section id="hero" class="hero-shell">
+    <video autoplay loop muted playsinline poster="../image/loginBackground.jpg" class="hero-video">
+        <source src="../image/SteakOnGrillCloseup.mp4" type="video/mp4">
+    </video>
+    <div class="hero-overlay"></div>
+    <div class="hero container">
+        <div class="hero-grid">
+            <div class="hero-copy">
+                <p class="eyebrow">Kota Kinabalu Fine Dining Experience</p>
+                <h1 class="hero-title">Boundless Dining &amp; Bar</h1>
+                <p class="hero-description">
+                    A polished restaurant experience with premium grills, crafted cocktails, elegant Indian specialties,
+                    and warm service for celebrations, business dinners, and memorable nights out.
+                </p>
+                <div class="hero-actions">
+                    <a href="#projects" class="cta">Explore Menu</a>
+                    <a href="../CustomerReservation/reservePage.php" class="cta cta-secondary">Reserve A Table</a>
+                </div>
+            </div>
+            <div class="hero-panel">
+                <div class="hero-card">
+                    <span class="hero-card-label">Opening Hours</span>
+                    <strong>10:00 AM - 8:00 PM</strong>
+                    <p>Indoor dining, curated drinks, and all-day hospitality.</p>
+                </div>
+                <div class="hero-card">
+                    <span class="hero-card-label">Signature Range</span>
+                    <strong>Grills, Indian Classics, South Indian Plates</strong>
+                    <p>From premium steaks to biryani, tandoori, and plated desserts.</p>
+                </div>
+                <div class="hero-card hero-card-accent">
+                    <span class="hero-card-label">Reservations</span>
+                    <strong>Walk-ins Welcome</strong>
+                    <p>Reserve in advance for birthdays, family dinners, and private celebrations.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="experience-strip">
+    <div class="experience-grid">
+        <div class="experience-item">
+            <span>139+</span>
+            <p>Curated dishes and beverages</p>
+        </div>
+        <div class="experience-item">
+            <span>5-Star</span>
+            <p>Premium pricing and elevated presentation</p>
+        </div>
+        <div class="experience-item">
+            <span>3 Worlds</span>
+            <p>Western classics, Indian signatures, and bar craft</p>
+        </div>
+    </div>
+</section>
+
+<section id="projects" class="menu-showcase">
+    <div class="projects container">
+        <div class="projects-header">
+            <p class="eyebrow dark">Signature Selection</p>
+            <h1 class="section-title">Our <span>Menu</span></h1>
+            <p class="section-lead">
+                Discover premium mains, refined sides, crafted drinks, and our expanded Indian and South Indian menu.
+            </p>
+        </div>
+
+        <div class="menu-intro-grid">
+            <article class="menu-intro-card">
+                <h3>Main Dishes</h3>
+                <p>Steaks, grills, burgers, pasta, seafood, curries, biryanis, and South Indian plates.</p>
+            </article>
+            <article class="menu-intro-card">
+                <h3>Side Snacks</h3>
+                <p>Bar bites, breads, salads, desserts, and premium small plates for sharing.</p>
+            </article>
+            <article class="menu-intro-card">
+                <h3>Drinks</h3>
+                <p>Classic cocktails, house pours, mocktails, juices, and premium spirits.</p>
+            </article>
+        </div>
+
+        <div class="menu-columns">
+            <div class="menu-panel">
+                <div class="menu-panel-header">
+                    <h2>Main Dishes</h2>
+                    <span>Chef-led mains and signature entrees</span>
+                </div>
+                <?php foreach ($groupedMainDishes as $type => $items): ?>
+                    <div class="menu-group">
+                        <h3><?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?></h3>
+                        <div class="menu-list">
+                            <?php foreach ($items as $item): ?>
+                                <article class="menu-item-card">
+                                    <div>
+                                        <h4><?php echo htmlspecialchars($item['item_name'], ENT_QUOTES, 'UTF-8'); ?></h4>
+                                        <p><?php echo htmlspecialchars($item['item_description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                    </div>
+                                    <strong>Rs <?php echo number_format((float) $item['item_price'], 0); ?></strong>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="menu-panel">
+                <div class="menu-panel-header">
+                    <h2>Side Snacks</h2>
+                    <span>Starters, breads, desserts, and accompaniment plates</span>
+                </div>
+                <?php foreach ($groupedSides as $type => $items): ?>
+                    <div class="menu-group">
+                        <h3><?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?></h3>
+                        <div class="menu-list">
+                            <?php foreach ($items as $item): ?>
+                                <article class="menu-item-card">
+                                    <div>
+                                        <h4><?php echo htmlspecialchars($item['item_name'], ENT_QUOTES, 'UTF-8'); ?></h4>
+                                        <p><?php echo htmlspecialchars($item['item_description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                    </div>
+                                    <strong>Rs <?php echo number_format((float) $item['item_price'], 0); ?></strong>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="menu-panel">
+                <div class="menu-panel-header">
+                    <h2>Drinks</h2>
+                    <span>Craft cocktails, premium bottles, mocktails, and juices</span>
+                </div>
+                <?php foreach ($groupedDrinks as $type => $items): ?>
+                    <div class="menu-group">
+                        <h3><?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?></h3>
+                        <div class="menu-list">
+                            <?php foreach ($items as $item): ?>
+                                <article class="menu-item-card">
+                                    <div>
+                                        <h4><?php echo htmlspecialchars($item['item_name'], ENT_QUOTES, 'UTF-8'); ?></h4>
+                                        <p><?php echo htmlspecialchars($item['item_description'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                    </div>
+                                    <strong>Rs <?php echo number_format((float) $item['item_price'], 0); ?></strong>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="hospitality-band">
+    <div class="hospitality-grid">
+        <div class="hospitality-copy">
+            <p class="eyebrow dark">Why Guests Return</p>
+            <h2>Built for celebrations, family dining, and polished evenings out.</h2>
+            <p>
+                Boundless blends a classic dining-room mood with a broader premium menu than before, so guests can move
+                from cocktails and grills to biryani, tandoori, and South Indian comfort plates in one setting.
+            </p>
+        </div>
+        <div class="hospitality-points">
+            <article>
+                <h3>Premium Menu Breadth</h3>
+                <p>Western signatures, Indian specialties, desserts, and drinks in one curated flow.</p>
+            </article>
+            <article>
+                <h3>Reservation Friendly</h3>
+                <p>Designed for special occasions, family tables, and advance planning.</p>
+            </article>
+            <article>
+                <h3>Comfort + Atmosphere</h3>
+                <p>An indoor dining and bar setup that works for both casual and formal visits.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section id="about" class="about-shell">
+    <div class="about container">
+        <div class="col-right">
+            <p class="eyebrow dark">About Boundless</p>
+            <h1 class="section-title">Dining With <span>Character</span></h1>
+            <h2>A restaurant experience built around hospitality, variety, and premium presentation.</h2>
+            <p>
+                Boundless began as a western dining concept known for steaks, grills, burgers, pasta, and a relaxed bar atmosphere.
+                It has since evolved into a broader premium restaurant experience that now also includes Indian starters, tandoori dishes,
+                biryanis, curries, naan, rice plates, South Indian classics, and plated desserts.
+            </p>
+            <p>
+                The restaurant is designed for guests who want more than just a quick meal. Whether you are planning a family dinner,
+                a celebration, or a comfortable evening out, Boundless aims to deliver attentive service and a menu with enough range
+                to suit different tastes at the same table.
+            </p>
+            <p>
+                The result is a more complete hospitality concept: polished enough for occasions, relaxed enough for repeat visits,
+                and varied enough to feel memorable.
+            </p>
+        </div>
+    </div>
+</section>
+
+<section id="contact" class="contact-shell">
+    <div class="contact container">
+        <div>
+            <p class="eyebrow dark">Reach Out</p>
+            <h1 class="section-title">Contact <span>Info</span></h1>
+        </div>
+        <div class="contact-items">
+            <div class="contact-item contact-item-bg">
+                <div class="contact-info">
+                    <div class="icon"><img src="../image/icons8-phone-100.png" alt="Phone"/></div>
+                    <h1>Phone</h1>
+                    <h2>9876000000</h2>
+                </div>
+            </div>
+
+            <div class="contact-item contact-item-bg">
+                <div class="contact-info">
+                    <div class="icon"><img src="../image/icons8-email-100.png" alt="Email"/></div>
+                    <h1>Email</h1>
+                    <h2>BoundlessDiningBar@gmail.com</h2>
+                </div>
+            </div>
+
+            <div class="contact-item contact-item-bg">
+                <div class="contact-info">
+                    <div class="icon"><img src="../image/icons8-home-address-100.png" alt="Address"/></div>
+                    <h1>Address</h1>
+                    <h2>Brindhavan Nagar, Mullai Street, Koyembedu, Chennai 600092</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php include_once('../components/footer.php'); ?>

@@ -1,177 +1,151 @@
 <?php
 require_once '../config.php';
-
-// Start the session
 session_start();
+
+$reservationStatus = $_GET['reservation'] ?? null;
+$reservationId = $_GET['reservation_id'] ?? null;
+$reservationError = $_GET['message'] ?? '';
+$headCount = (int) ($_GET['head_count'] ?? 1);
+$defaultReservationDate = $_GET['reservation_date'] ?? date('Y-m-d');
+$defaultReservationTime = $_GET['reservation_time'] ?? '13:00:00';
+$reservedTableIdList = $_GET['reserved_table_id'] ?? '0';
+
+$availableTimes = [];
+for ($hour = 10; $hour <= 20; $hour++) {
+    $availableTimes[] = sprintf('%02d:00:00', $hour);
+}
+
+$availableTables = [];
+if ($reservedTableIdList !== '') {
+    $reservedTableIds = array_filter(array_map('intval', explode(',', $reservedTableIdList)));
+    $tableQuery = "SELECT * FROM restaurant_tables WHERE capacity >= ?";
+    $types = "i";
+    $params = [$headCount];
+
+    if (!empty($reservedTableIds) && $reservedTableIdList !== '0') {
+        $placeholders = implode(',', array_fill(0, count($reservedTableIds), '?'));
+        $tableQuery .= " AND table_id NOT IN ($placeholders)";
+        $types .= str_repeat('i', count($reservedTableIds));
+        $params = array_merge($params, $reservedTableIds);
+    }
+
+    $tableStmt = mysqli_prepare($link, $tableQuery);
+    mysqli_stmt_bind_param($tableStmt, $types, ...$params);
+    mysqli_stmt_execute($tableStmt);
+    $tableResult = mysqli_stmt_get_result($tableStmt);
+    $availableTables = mysqli_fetch_all($tableResult, MYSQLI_ASSOC);
+    mysqli_stmt_close($tableStmt);
+}
+
+include_once('../components/header.php');
 ?>
 
+<?php if ($reservationStatus === 'success' && $reservationId): ?>
+    <script>
+        alert("Table successfully reserved. Click OK to view your reservation receipt.");
+        window.location.href = "reservationReceipt.php?reservation_id=<?php echo urlencode((string) $reservationId); ?>";
+    </script>
+<?php endif; ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<section class="reservation-hero">
+    <div class="reservation-hero-copy">
+        <p class="eyebrow">Table Booking</p>
+        <h1>Reserve your seat with confidence.</h1>
+        <p>
+            Select your preferred date and time, review available tables, and complete the reservation in one polished flow.
+        </p>
+    </div>
+</section>
 
-
-    <title>Customer Reservation </title>
-    <style>
-        /* Apply background image to the body */
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: rgb(37, 42, 52);    
-            display: flex;
-            color: white;
-            justify-content: center; /* Center the container horizontally */
-            align-items: center; /* Center the container vertically */
-            height: 100vh; /* Ensure the container takes up the full viewport height */
-        }
-        .reserve-container {
-            max-width: 36.4em;
-        }
-        .column {
-            padding: 10px;
-            text-align: left;
-            width: 36.4em;
-            flex-basis: 50%; /* Adjust the width of the columns as needed */
-           
-        }
-
-            
-    </style>
-</head>
-<body>
-    <?php
-        $reservationStatus = $_GET['reservation'] ?? null;
-        $message = '';
-        if ($reservationStatus === 'success') {
-            $message = "Reservation successful";
-            $reservation_id = $_GET['reservation_id'] ?? null;
-            echo '<a class="nav-link" href="../home/home.php#hero">' .
-            '<h1 class="text-center" style="font-family: Copperplate; color: whitesmoke;">JOHNNY\'S</h1>' .
-            '<span class="sr-only"></span></a>';
-            echo '<script>alert("Table Successfully Reserved. Click OK to view your reservation receipt."); window.location.href = "reservationReceipt.php?reservation_id=' . $reservation_id . '";</script>';
-
-        }
-        $head_count = $_GET['head_count'] ?? 1;
-    ?>
-    <div class="member-info"></div>
-    <div class="reserve-container">
-        <a class="nav-link" href="../home/home.php#hero">
-            <h1 class="text-center" style="font-family: Copperplate; color: whitesmoke;">Boundless</h1>
-            <span class="sr-only"></span>
-        </a>
-
-        <div class="row">
-            <div class="column">
-                <div id="Search Table">
-                    <h2 style=" color:white;">Search for Time</h2>
-                 
-                    <form id="reservation-form" method="GET" action="availability.php"><br>
-                        <div class="form-group">
-                        <label for="reservation_date" style="">Select Date</label><br>
-                        <input class="form-control" type="date" id="reservation_date" name="reservation_date" required>
-                        </div>
-                        <div class="form-group">
-                        <label for="reservation_time" style="">Available Reservation Times</label>
-                        <div id="availability-table">
-                            <?php
-                            $availableTimes = array();
-                            for ($hour = 10; $hour <= 20; $hour++) {
-                                for ($minute = 0; $minute < 60; $minute += 60) {
-                                    $time = sprintf('%02d:%02d:00', $hour, $minute);
-                                    $availableTimes[] = $time;
-                                }
-                            }
-                            echo '<select name="reservation_time" id="reservation_time" style="width:10em;" class="form-control" >';
-                            echo '<option value="" selected disabled>Select a Time</option>';
-                            foreach ($availableTimes as $time) {
-                                echo "<option  value='$time'>$time</option>";
-                            }
-                            echo '</select>';
-                            if (isset($_GET['message'])) {
-                                $message = $_GET['message'];
-                                echo "<p>$message</p>";
-                            }
-                            ?>
-                        </div>
-                        </div>
-              
-                        <input type="number" id="head_count" name="head_count" value=1 hidden required>
-                        <button type="submit" style="background-color: black; color: rgb(234, 234, 234); " class="btn" name="submit" >Search</button>
-                    </form>
-                </div>
+<section class="reservation-shell">
+    <div class="reservation-grid">
+        <div class="reservation-panel search-panel">
+            <div class="reservation-panel-header">
+                <span>Step 1</span>
+                <h2>Search For Time</h2>
+                <p>Pick the day and timeslot to see which tables are available.</p>
             </div>
 
-            <div class="column right-column">
-                <div id="insert-reservation-into-table">
-                    <h2 style=" color:white;">Make Reservation</h2>
-                    <form id="reservation-form" method="POST" action="insertReservation.php">
-                        <br>
-                        <div class="form-group">
-                            <label for="customer_name" style="">Customer Name</label><br>
-                            <input class="form-control" type="text" id="customer_name" name="customer_name" required>
-                        </div>
-                        <?php
-                        $defaultReservationDate = $_GET['reservation_date'] ?? date("Y-m-d");
-                        $defaultReservationTime = $_GET['reservation_time'] ?? "13:00:00";
-                        ?>
-                   
-                        <div class="form-group " >
-                            <label for="reservation_date" style="">Reservation Date</label><br>
-                            <input type="date" id="reservation_date" name="reservation_date"
-                                   value="<?= $defaultReservationDate ?>" readonly required>
-                            <input type="time" id="reservation_time" name="reservation_time"
-                                   value="<?= $defaultReservationTime ?>" readonly required>
-                        </div>
-                 
-                        <div class="form-group">
-                            <label for="table_id_reserve" style="">Available Tables</label>
-                            <select class="form-control" name="table_id" id="table_id_reserve" style="width:10em;" required>
-                                <option value="" selected disabled>Select a Table</option>
-                                <?php
-                                $table_id_list = $_GET['reserved_table_id'];
-                                $head_count = $_GET['head_count'] ?? 1;
-                                $reserved_table_ids = explode(',', $table_id_list);
-                                $select_query_tables = "SELECT * FROM restaurant_tables WHERE capacity >= '$head_count'";
-                                if (!empty($reserved_table_ids)) {
-                                    $reserved_table_ids_string = implode(',', $reserved_table_ids);
-                                    $select_query_tables .= " AND table_id NOT IN ($reserved_table_ids_string)";
-                                }
-                                $result_tables = mysqli_query($link, $select_query_tables);
-                                $resultCheckTables = mysqli_num_rows($result_tables);
-                                if ($resultCheckTables > 0) {
-                                    while ($row = mysqli_fetch_assoc($result_tables)) {
-                                        echo '<option value="' . $row['table_id'] . '">For ' . $row['capacity'] . ' people. (Table Id: ' . $row['table_id'] . ')</option>';
-                                    }
-                                }  else {
-                                    echo '<option disabled>No tables available, please choose another time.</option>';
-                                    echo '<script>alert("No reservation tables found for the selected time. Please choose another time.");</script>';
-                                }
-                                ?>
-                            </select>
-                            <input type="number" id="head_count" name="head_count" value="<?= $head_count ?>" required hidden>
-                        </div>
-                 
-                        <div class="form-group mb-3">
-                            <label for="special_request">Special request</label><br>
-                            <textarea class="form-control"  id="special_request" name="special_request"> </textarea><br>
-                            <button type="submit" style="background-color: black; color: rgb(234, 234, 234); " class="btn" type="submit" name="submit">Make Reservation</button>
-                        </div>
-                    </form>
+            <form method="GET" action="availability.php" class="reservation-form-card">
+                <div class="form-group">
+                    <label for="search_reservation_date">Select Date</label>
+                    <input class="form-control" type="date" id="search_reservation_date" name="reservation_date" required>
                 </div>
+
+                <div class="form-group">
+                    <label for="search_reservation_time">Available Reservation Times</label>
+                    <select name="reservation_time" id="search_reservation_time" class="form-control" required>
+                        <option value="" selected disabled>Select a Time</option>
+                        <?php foreach ($availableTimes as $time): ?>
+                            <option value="<?php echo htmlspecialchars($time, ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php echo date('h:i A', strtotime($time)); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <input type="number" name="head_count" value="1" hidden required>
+
+                <button type="submit" class="btn reservation-btn-dark">Search Availability</button>
+            </form>
+        </div>
+
+        <div class="reservation-panel book-panel">
+            <div class="reservation-panel-header">
+                <span>Step 2</span>
+                <h2>Make Reservation</h2>
+                <p>Fill in the guest details and confirm the best available table.</p>
             </div>
+
+            <?php if ($reservationError !== ''): ?>
+                <div class="reservation-alert">
+                    <?php echo htmlspecialchars($reservationError, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" action="insertReservation.php" class="reservation-form-card">
+                <div class="form-group">
+                    <label for="customer_name">Customer Name</label>
+                    <input class="form-control" type="text" id="customer_name" name="customer_name" required>
+                </div>
+
+                <div class="reservation-inline-fields">
+                    <div class="form-group">
+                        <label for="reservation_date_display">Reservation Date</label>
+                        <input class="form-control" type="date" id="reservation_date_display" name="reservation_date" value="<?php echo htmlspecialchars($defaultReservationDate, ENT_QUOTES, 'UTF-8'); ?>" readonly required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reservation_time_display">Reservation Time</label>
+                        <input class="form-control" type="time" id="reservation_time_display" name="reservation_time" value="<?php echo htmlspecialchars($defaultReservationTime, ENT_QUOTES, 'UTF-8'); ?>" readonly required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="table_id_reserve">Available Tables</label>
+                    <select class="form-control" name="table_id" id="table_id_reserve" required>
+                        <option value="" selected disabled>Select a Table</option>
+                        <?php if (!empty($availableTables)): ?>
+                            <?php foreach ($availableTables as $table): ?>
+                                <option value="<?php echo (int) $table['table_id']; ?>">
+                                    Table <?php echo (int) $table['table_id']; ?> · For <?php echo (int) $table['capacity']; ?> guests
+                                </option>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <option disabled>No tables available yet. Search a date and time first.</option>
+                        <?php endif; ?>
+                    </select>
+                    <input type="number" name="head_count" value="<?php echo $headCount; ?>" hidden required>
+                </div>
+
+                <div class="form-group">
+                    <label for="special_request">Special Request</label>
+                    <textarea class="form-control" id="special_request" name="special_request" rows="4" placeholder="Anniversary setup, quiet corner, allergies, or any dining preference"></textarea>
+                </div>
+
+                <button type="submit" class="btn reservation-btn-gold">Confirm Reservation</button>
+            </form>
         </div>
     </div>
+</section>
 
-    <script>
-        const viewDateInput = document.getElementById("reservation_date");
-        const makeDateInput = document.getElementById("reservation_date");
-
-        viewDateInput.addEventListener("change", function () {
-            makeDateInput.value = this.value;
-        });
-    </script>
-</body>
-
-</html>
+<?php include_once('../components/footer.php'); ?>

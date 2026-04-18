@@ -1,4 +1,5 @@
 CREATE DATABASE IF NOT EXISTS restaurantDB; -- Change to your database name
+USE restaurantDB;
 
 CREATE TABLE IF NOT EXISTS Menu (
   item_id VARCHAR(6) PRIMARY KEY,
@@ -245,12 +246,32 @@ VALUES
 ('CP4', 'Watermelon', 'Cold Pressed Juice', 'Drinks', 560.00, 'fresh pressed juice'),
 ('CP5', 'Pineapple', 'Cold Pressed Juice', 'Drinks', 560.00, 'fresh pressed juice'),
 ('CP6', 'Lime', 'Cold Pressed Juice', 'Drinks', 520.00, 'fresh pressed juice'),
+('CP7', 'Mosambi', 'Cold Pressed Juice', 'Drinks', 640.00, 'fresh pressed sweet lime juice'),
+('CP8', 'Pomegranate', 'Cold Pressed Juice', 'Drinks', 760.00, 'fresh pressed pomegranate juice'),
+('CP9', 'Sugarcane Ginger', 'Cold Pressed Juice', 'Drinks', 690.00, 'cold pressed sugarcane with ginger'),
+('CP10', 'Kiwi Mint Cooler', 'Cold Pressed Juice', 'Drinks', 820.00, 'kiwi, mint, and citrus cooler'),
+('CP11', 'Tender Coconut Splash', 'Cold Pressed Juice', 'Drinks', 780.00, 'chilled tender coconut refresher'),
+('CP12', 'Guava Spice Cooler', 'Cold Pressed Juice', 'Drinks', 740.00, 'pink guava with chilli salt and lime'),
+('CP13', 'Apple Celery Boost', 'Cold Pressed Juice', 'Drinks', 790.00, 'green apple, celery, and cucumber'),
+('CP14', 'Beetroot Berry Blend', 'Cold Pressed Juice', 'Drinks', 810.00, 'beetroot with mixed berry notes'),
+('CP15', 'Pineapple Mint Twist', 'Cold Pressed Juice', 'Drinks', 720.00, 'pineapple, mint, and lemon'),
+('CP16', 'Pear Ginger Elixir', 'Cold Pressed Juice', 'Drinks', 830.00, 'pear juice lifted with fresh ginger'),
+('CP17', 'Mint Lemon Cooler', 'Cold Pressed Juice', 'Drinks', 610.00, 'fresh lemon and garden mint'),
+('CP18', 'Black Grape Refresher', 'Cold Pressed Juice', 'Drinks', 760.00, 'black grape juice served chilled'),
+('CP19', 'Orange Basil Splash', 'Cold Pressed Juice', 'Drinks', 710.00, 'orange juice with basil essence'),
+('CP20', 'Cucumber Aloe Cooler', 'Cold Pressed Juice', 'Drinks', 840.00, 'cucumber and aloe cooling tonic'),
+('CP21', 'Mango Coconut Chill', 'Cold Pressed Juice', 'Drinks', 860.00, 'ripe mango blended with coconut water'),
 ('M1', 'Cool & Refreshing', 'Mocktails', 'Drinks', 780.00, 'Cucumber,peppermint,lemon'),
 ('M2', 'Virgin Apple Mojito', 'Mocktails', 'Drinks', 820.00, 'Green apple, mint leaf'),
 ('M3', 'Shirley Temple', 'Mocktails', 'Drinks', 790.00, 'Lemonade, grenadine'),
 ('M4', 'Purple Rain', 'Mocktails', 'Drinks', 840.00, 'Blackcurrant, strawberry'),
 ('M5', 'Silly Rose', 'Mocktails', 'Drinks', 810.00, 'Green Tea, lychee, rose'),
 ('M6', 'Incredible Green', 'Mocktails', 'Drinks', 760.00, 'Green apple, lemon, lime, soda'),
+('M7', 'Mango Basil Sparkler', 'Mocktails', 'Drinks', 860.00, 'mango puree, basil, and soda'),
+('M8', 'Jamun Fizz', 'Mocktails', 'Drinks', 880.00, 'jamun, citrus, and sparkling water'),
+('M9', 'Lychee Cucumber Cooler', 'Mocktails', 'Drinks', 840.00, 'lychee, cucumber, and mint'),
+('M10', 'Cranberry Ginger Splash', 'Mocktails', 'Drinks', 820.00, 'cranberry, ginger, and lime'),
+('M11', 'Passion Fruit Lemonade', 'Mocktails', 'Drinks', 850.00, 'passion fruit, lemon, and soda'),
 ('IN1', 'Dahi Ke Kebab', 'Indian Starters', 'Side Snacks', 1450.00, 'Hung curd kebabs with saffron and mint'),
 ('IN2', 'Malai Broccoli', 'Indian Starters', 'Side Snacks', 1380.00, 'Charred broccoli with cream cheese marinade'),
 ('IN3', 'Lotus Stem Honey Chilli', 'Indian Starters', 'Side Snacks', 1520.00, 'Crisp lotus stem tossed in chilli glaze'),
@@ -379,7 +400,7 @@ VALUES
 (1920235, 'Johny Rings', 5, '19:45:00', '2026-04-01', 2, 'Quiet corner, please'),
 (1820237, 'Neha Kapoor', 7, '18:30:00', '2026-04-03', 2, 'Allergies: peanuts'),
 (1920239, 'Tanvi Rao', 9, '19:15:00', '2026-04-05', 2, 'Surprise dessert for anniversary'),
-(1111111, 'Pooja Chawla', 9, '19:15:00', '2026-04-05', 2, 'Description'),
+(1111111, 'Pooja Chawla', 9, '20:15:00', '2026-04-05', 2, 'Description'),
 (14202310, 'Bruce Fernandes', 10, '14:45:00', '2026-04-06', 3, 'Window seat, if available');
 
 INSERT INTO card_payments (card_id, account_holder_name, card_number, expiry_date, security_code)

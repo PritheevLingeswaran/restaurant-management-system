@@ -1,5 +1,8 @@
 <?php
 require_once '../config.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 
 $sqlmainDishes = "SELECT * FROM Menu WHERE item_category = 'Main Dishes' ORDER BY item_type; ";
@@ -13,19 +16,6 @@ $drinks = mysqli_fetch_all($resultdrinks, MYSQLI_ASSOC);
 $sqlsides = "SELECT * FROM Menu WHERE item_category = 'Side Snacks' ORDER BY item_type; ";
 $resultsides = mysqli_query($link, $sqlsides);
 $sides = mysqli_fetch_all($resultsides, MYSQLI_ASSOC);
-
-
-
-// Check if the user is logged in
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true){
-    echo '<div class="user-profile">';
-    echo 'Welcome, ' . $_SESSION["member_name"] . '!';
-    echo '<a href="../customerProfile/profile.php">Profile</a>';
-    echo '</div>';
-    
-}
-
-session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -46,14 +36,20 @@ session_start();
 
 <body>
     <!-- Header -->
+<?php
+$isHomePage = basename($_SERVER['PHP_SELF']) === 'home.php';
+$homeLink = $isHomePage ? '#hero' : '../home/home.php';
+$menuLink = $isHomePage ? '#projects' : '../home/home.php#projects';
+$aboutLink = $isHomePage ? '#about' : '../home/home.php#about';
+$contactLink = $isHomePage ? '#contact' : '../home/home.php#contact';
+?>
 
     <section id="header">
         <div class="header container">
             <div class="nav-bar">
                 <div class="brand">
-                    <a class="nav-link" href="../home/home.php#hero">
-                        <h1 class="text-center" style="font-family:Copperplate; color:whitesmoke;"> Boundless</h1><span
-                            class="sr-only"></span>
+                    <a class="nav-link" href="<?php echo $homeLink; ?>">
+                        <h1 class="brand-mark">Boundless</h1><span class="sr-only"></span>
                     </a>
                 </div>
                 <div class="nav-list">
@@ -64,28 +60,12 @@ session_start();
 
                         <div class="navbar">
                             <ul>
-<?php
-$current_url = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
-?>
-                                <li><a href="<?= strpos($current_url, "localhost/customerSide/home/home.php") !== false ? "#hero" : "/customerSide/home/home.php" ?>" data-after="Home">Home</a></li>
-<?php
-if (strpos($current_url, "localhost/customerSide/home/home.php") !== false) {
-?>
-                                <li><a href="#projects" data-after="Projects">Menu</a></li>
-                                <li><a href="#about" data-after="About">About</a></li>
-                                <li><a href="#contact" data-after="Contact">Contact</a></li>
-<?php
-} else {
-?>
-                                <li><a href="../CustomerReservation/reservePage.php"
-                                        data-after="Service">Reservation</a></li>
+                                <li><a href="<?php echo $homeLink; ?>" data-after="Home">Home</a></li>
+                                <li><a href="<?php echo $menuLink; ?>" data-after="Menu">Menu</a></li>
+                                <li><a href="../CustomerReservation/reservePage.php" data-after="Reservation">Reservation</a></li>
+                                <li><a href="<?php echo $aboutLink; ?>" data-after="About">About</a></li>
+                                <li><a href="<?php echo $contactLink; ?>" data-after="Contact">Contact</a></li>
                                 <li><a href="../../adminSide/StaffLogin/login.php" data-after="Staff">Staff</a></li>
-<?php
-}
-?>
-
-
-
 
                                 <div class="dropdown">
                                     <button class="dropbtn">ACCOUNT <i class="fa fa-caret-down" aria-hidden="true"></i>
@@ -150,10 +130,7 @@ $result = mysqli_query($link, $query);
     echo '<a class="login-link" style="color: white; font-size:15px; " href="../customerLogin/login.php">Log In</a>';
 }
 
-// Close the database connection
-mysqli_close($link);
 ?>
-
 
                                     </div>
                                 </div>
