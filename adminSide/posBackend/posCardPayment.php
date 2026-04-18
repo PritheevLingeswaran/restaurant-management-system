@@ -125,7 +125,7 @@ $tax = 0.1;
             </div>
             <div class="form-group mb-3">
                 <label for="expiryDate">Expiry Date</label>
-                <input type="text" id="expiryDate" name="expiryDate" pattern="(0[1-9]|1[0-2])\/[0-9]{4}" maxlength="7" placeholder="MM/YYYY" class="form-control" required>
+                <input type="text" id="expiryDate" name="expiryDate" pattern="(0[1-9]|1[0-2])\/[0-9]{2}" maxlength="5" placeholder="MM/YY" class="form-control" title="Enter expiry date in MM/YY format (e.g. 06/32)" required>
             </div>
             <div class="form-group mb-3">
                 <label for="securityCode">Security Code</label>
@@ -182,15 +182,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Expiry date auto-formatting (MM/YY)
+    var expiryField = document.getElementById('expiryDate');
+    
+    expiryField.addEventListener('input', function(e) {
+        var digits = this.value.replace(/\D/g, '');
+        digits = digits.substring(0, 4);
+        
+        if (digits.length >= 2) {
+            this.value = digits.substring(0, 2) + '/' + digits.substring(2);
+        } else {
+            this.value = digits;
+        }
+    });
+
+    expiryField.addEventListener('keypress', function(e) {
+        var char = String.fromCharCode(e.which || e.keyCode);
+        if (!/\d/.test(char)) {
+            e.preventDefault();
+        }
+    });
+
     // Validate on form submit
     var form = cardField.closest('form');
     form.addEventListener('submit', function(e) {
-        var value = cardField.value;
-        var pattern = /^\d{4}-\d{4}-\d{4}-\d{4}$/;
-        if (!pattern.test(value)) {
+        var cardValue = cardField.value;
+        var cardPattern = /^\d{4}-\d{4}-\d{4}-\d{4}$/;
+        if (!cardPattern.test(cardValue)) {
             e.preventDefault();
             alert('Card number must be exactly 16 digits in XXXX-XXXX-XXXX-XXXX format.');
             cardField.focus();
+            return;
+        }
+
+        var expiryValue = expiryField.value;
+        var expiryPattern = /^(0[1-9]|1[0-2])\/\d{2}$/;
+        if (!expiryPattern.test(expiryValue)) {
+            e.preventDefault();
+            alert('Expiry date must be in MM/YY format (e.g. 06/32).');
+            expiryField.focus();
+            return;
         }
     });
 });
