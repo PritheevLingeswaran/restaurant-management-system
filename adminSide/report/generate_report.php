@@ -173,7 +173,7 @@ $pdf->ChapterBody("Total Revenue Today: Rs " . number_format($totalRevenueToday,
 $pdf->Ln();
 
 // Calculate total revenue for this week (assuming week starts on Monday)
-$currentWeekStart = date('Y-m-d', strtotime('monday this week'));
+$currentWeekStart = date('Y-m-d', strtotime('-6 days'));
 $totalRevenueThisWeekQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue FROM Bill_Items
                              INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                              INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id

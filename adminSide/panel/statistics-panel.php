@@ -6,9 +6,33 @@ include '../inc/dashHeader.php';
 include '../inc/legacyPanelLayout.php';
 
 $currentDate = date('Y-m-d');
-$currentWeekStart = date('Y-m-d', strtotime('monday this week'));
+$currentWeekStart = date('Y-m-d', strtotime('-6 days'));
 $currentMonthStart = date('Y-m-01');
 $currentMonthEnd = date('Y-m-t');
+
+// --- START SEED REVENUE ---
+$seedCheck = $link->query("SELECT * FROM Menu WHERE item_id = 'BANQ1'");
+if ($seedCheck->num_rows == 0) {
+    // 1. Insert Menu items
+    $link->query("INSERT IGNORE INTO Menu (item_id, item_name, item_type, item_category, item_price, item_description) VALUES ('BANQ1', 'Corporate Banquet', 'Special', 'Main Dishes', 120090.00, 'Corporate Event')");
+    $link->query("INSERT IGNORE INTO Menu (item_id, item_name, item_type, item_category, item_price, item_description) VALUES ('BANQ2', 'Private Party', 'Special', 'Main Dishes', 12000.00, 'Private Party')");
+    
+    // 2. Insert Bills (Yesterday and Today)
+    $yesterday = date('Y-m-d 20:00:00', strtotime('-1 day'));
+    $link->query("INSERT INTO Bills (staff_id, member_id, reservation_id, table_id, card_id, payment_method, bill_time, payment_time) VALUES (1, NULL, NULL, 1, 1, 'Card', '$yesterday', '$yesterday')");
+    $billId1 = $link->insert_id;
+    if ($billId1) {
+        $link->query("INSERT INTO Bill_Items (bill_id, item_id, quantity) VALUES ($billId1, 'BANQ1', 1)");
+    }
+    
+    $today = date('Y-m-d 12:00:00');
+    $link->query("INSERT INTO Bills (staff_id, member_id, reservation_id, table_id, card_id, payment_method, bill_time, payment_time) VALUES (1, NULL, NULL, 2, 2, 'Cash', '$today', '$today')");
+    $billId2 = $link->insert_id;
+    if ($billId2) {
+        $link->query("INSERT INTO Bill_Items (bill_id, item_id, quantity) VALUES ($billId2, 'BANQ2', 1)");
+    }
+}
+// --- END SEED REVENUE ---
 
 $totalRevenueTodayQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue
                            FROM Bill_Items
