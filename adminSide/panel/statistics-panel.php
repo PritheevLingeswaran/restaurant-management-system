@@ -9,6 +9,7 @@ $currentDate = date('Y-m-d');
 $currentWeekStart = date('Y-m-d', strtotime('-6 days'));
 $currentMonthStart = date('Y-m-01');
 $currentMonthEnd = date('Y-m-t');
+$currentMonth = date('Y-m');
 
 // --- START SEED REVENUE ---
 $seedCheck = $link->query("SELECT * FROM Menu WHERE item_id = 'BANQ1'");
@@ -33,6 +34,32 @@ if ($seedCheck->num_rows == 0) {
     }
 }
 // --- END SEED REVENUE ---
+
+$latestBillMonthQuery = "SELECT DATE_FORMAT(MAX(bill_time), '%Y-%m') AS latest_month FROM Bills";
+$latestBillMonthResult = mysqli_query($link, $latestBillMonthQuery);
+$latestBillMonthRow = $latestBillMonthResult ? mysqli_fetch_assoc($latestBillMonthResult) : null;
+$reportingMonth = $currentMonth;
+
+if (!empty($latestBillMonthRow['latest_month'])) {
+    $currentMonthCountQuery = "SELECT COUNT(*) AS bill_count
+                               FROM Bills
+                               WHERE bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'";
+    $currentMonthCountResult = mysqli_query($link, $currentMonthCountQuery);
+    $currentMonthCountRow = $currentMonthCountResult ? mysqli_fetch_assoc($currentMonthCountResult) : ['bill_count' => 0];
+
+    if ((int) $currentMonthCountRow['bill_count'] === 0) {
+        $reportingMonth = $latestBillMonthRow['latest_month'];
+    }
+
+    if ($currentMonthCountResult) {
+        mysqli_free_result($currentMonthCountResult);
+    }
+}
+
+$reportingMonthStart = date('Y-m-01', strtotime($reportingMonth . '-01'));
+$reportingMonthEnd = date('Y-m-t', strtotime($reportingMonth . '-01'));
+$reportingMonthLabel = date('F Y', strtotime($reportingMonth . '-01'));
+$isFallbackMonth = $reportingMonth !== $currentMonth;
 
 $totalRevenueTodayQuery = "SELECT COALESCE(SUM(item_price * quantity), 0) AS total_revenue
                            FROM Bill_Items
@@ -66,7 +93,7 @@ $cardQuery = "
     LEFT JOIN Bill_Items bi ON b.bill_id = bi.bill_id
     LEFT JOIN Menu m ON bi.item_id = m.item_id
     WHERE LOWER(b.payment_method) = 'card'
-      AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
+      AND b.bill_time BETWEEN '$reportingMonthStart 00:00:00' AND '$reportingMonthEnd 23:59:59'
 ";
 $cashQuery = "
     SELECT IFNULL(SUM(bi.quantity * m.item_price), 0) AS cash_revenue
@@ -74,7 +101,7 @@ $cashQuery = "
     LEFT JOIN Bill_Items bi ON b.bill_id = bi.bill_id
     LEFT JOIN Menu m ON bi.item_id = m.item_id
     WHERE LOWER(b.payment_method) = 'cash'
-      AND b.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
+      AND b.bill_time BETWEEN '$reportingMonthStart 00:00:00' AND '$reportingMonthEnd 23:59:59'
 ";
 
 $cardRevenue = (float) mysqli_fetch_assoc(mysqli_query($link, $cardQuery))['card_revenue'];
@@ -98,6 +125,9 @@ $cashRevenue = (float) mysqli_fetch_assoc(mysqli_query($link, $cashQuery))['cash
             <div>
                 <h2 class="mb-1">Revenue Statistics</h2>
                 <p class="text-muted mb-0">Daily, weekly, monthly, and total revenue summary.</p>
+                <?php if ($isFallbackMonth): ?>
+                    <p class="text-muted mb-0">Payment charts are showing the latest month with revenue data because the current month has no bills yet.</p>
+                <?php endif; ?>
             </div>
             <a href="../report/generate_report.php" class="btn btn-dark">Print Report</a>
         </div>
@@ -161,12 +191,12 @@ function paymentMethodCharts() {
   ]);
 
   const barChartOptions = {
-    title: 'Revenue Generated - <?php echo date('F Y'); ?>',
+    title: 'Revenue Generated - <?php echo htmlspecialchars($reportingMonthLabel, ENT_QUOTES); ?>',
     bars: 'vertical'
   };
 
   const donutChartOptions = {
-    title: 'Revenue Percentage - <?php echo date('F Y'); ?>',
+    title: 'Revenue Percentage - <?php echo htmlspecialchars($reportingMonthLabel, ENT_QUOTES); ?>',
     pieHole: 0.4
   };
 

@@ -10,14 +10,79 @@ $currentMonthEnd = date('Y-m-t');
 $currentMonth = date('Y-m');
 $sortOrder = (isset($_GET['sortOrder']) && strtolower($_GET['sortOrder']) === 'asc') ? 'ASC' : 'DESC';
 
+$latestBillMonthQuery = "SELECT DATE_FORMAT(MAX(bill_time), '%Y-%m') AS latest_month FROM Bills";
+$latestBillMonthResult = mysqli_query($link, $latestBillMonthQuery);
+$latestBillMonthRow = $latestBillMonthResult ? mysqli_fetch_assoc($latestBillMonthResult) : null;
+$reportingMonth = $currentMonth;
+
+if (!empty($latestBillMonthRow['latest_month'])) {
+    $currentMonthCountQuery = "SELECT COUNT(*) AS bill_count
+                               FROM Bills
+                               WHERE bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'";
+    $currentMonthCountResult = mysqli_query($link, $currentMonthCountQuery);
+    $currentMonthCountRow = $currentMonthCountResult ? mysqli_fetch_assoc($currentMonthCountResult) : ['bill_count' => 0];
+
+    if ((int) $currentMonthCountRow['bill_count'] === 0) {
+        $reportingMonth = $latestBillMonthRow['latest_month'];
+    }
+
+    if ($currentMonthCountResult) {
+        mysqli_free_result($currentMonthCountResult);
+    }
+}
+
+$reportingMonthStart = date('Y-m-01', strtotime($reportingMonth . '-01'));
+$reportingMonthEnd = date('Y-m-t', strtotime($reportingMonth . '-01'));
+$reportingMonthLabel = date('F Y', strtotime($reportingMonth . '-01'));
+$isFallbackMonth = $reportingMonth !== $currentMonth;
+
+function fetchSalesChartRows(mysqli $link, string $monthStart, string $monthEnd, ?string $category = null): array
+{
+    $categoryFilter = $category !== null ? " AND Menu.item_category = ?" : "";
+    $query = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS total_quantity
+              FROM Bill_Items
+              INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
+              INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
+              WHERE Bills.bill_time BETWEEN ? AND ?" . $categoryFilter . "
+              GROUP BY Menu.item_name
+              ORDER BY total_quantity DESC
+              LIMIT 10";
+    $stmt = $link->prepare($query);
+    $rangeStart = $monthStart . ' 00:00:00';
+    $rangeEnd = $monthEnd . ' 23:59:59';
+
+    if ($category !== null) {
+        $stmt->bind_param('sss', $rangeStart, $rangeEnd, $category);
+    } else {
+        $stmt->bind_param('ss', $rangeStart, $rangeEnd);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = [$row['item_name'], (int) $row['total_quantity']];
+    }
+
+    $stmt->close();
+
+    return $rows;
+}
+
 $menuItemSalesQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS total_quantity
                        FROM Bill_Items
                        INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
                        INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                       WHERE Bills.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
+                       WHERE Bills.bill_time BETWEEN '$reportingMonthStart 00:00:00' AND '$reportingMonthEnd 23:59:59'
                        GROUP BY Menu.item_name
                        ORDER BY total_quantity $sortOrder";
 $menuItemSalesResult = mysqli_query($link, $menuItemSalesQuery);
+
+$allItemsChartRows = fetchSalesChartRows($link, $reportingMonthStart, $reportingMonthEnd);
+$mainItemsChartRows = fetchSalesChartRows($link, $reportingMonthStart, $reportingMonthEnd, 'Main Dishes');
+$drinksChartRows = fetchSalesChartRows($link, $reportingMonthStart, $reportingMonthEnd, 'Drinks');
+$sideItemsChartRows = fetchSalesChartRows($link, $reportingMonthStart, $reportingMonthEnd, 'Side Snacks');
 ?>
 
 <style>
@@ -48,7 +113,10 @@ $menuItemSalesResult = mysqli_query($link, $menuItemSalesQuery);
         <div class="legacy-toolbar">
             <div>
                 <h2 class="mb-1">Most Purchased Items</h2>
-                <p class="text-muted mb-0">(<?php echo htmlspecialchars($currentMonth); ?>)</p>
+                <p class="text-muted mb-0">(<?php echo htmlspecialchars($reportingMonth); ?>)</p>
+                <?php if ($isFallbackMonth): ?>
+                    <p class="text-muted mb-0">Showing the latest month with sales data because the current month has no bills yet.</p>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -94,24 +162,23 @@ $menuItemSalesResult = mysqli_query($link, $menuItemSalesQuery);
     google.charts.setOnLoadCallback(mostPurchasedMainChart);
     google.charts.setOnLoadCallback(mostPurchasedSideChart);
 
-    function mostPurchasedChart() {
+    const reportingMonthLabel = <?php echo json_encode($reportingMonthLabel); ?>;
+    const allItemsChartRows = <?php echo json_encode($allItemsChartRows, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    const drinksChartRows = <?php echo json_encode($drinksChartRows, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    const mainItemsChartRows = <?php echo json_encode($mainItemsChartRows, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    const sideItemsChartRows = <?php echo json_encode($sideItemsChartRows, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+    function drawPieChart(elementId, title, rows) {
+        const chartHost = document.getElementById(elementId);
+
+        if (!rows.length) {
+            chartHost.innerHTML = '<div class="alert alert-light border mb-0">No sales data available for this chart.</div>';
+            return;
+        }
+
         const data = google.visualization.arrayToDataTable([
             ['Item Name', 'Total Quantity'],
-            <?php
-            $topPurchasedItemsQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS total_quantity
-                                       FROM Bill_Items
-                                       INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
-                                       INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                                       WHERE Bills.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
-                                       GROUP BY Menu.item_name
-                                       ORDER BY total_quantity DESC
-                                       LIMIT 10";
-            $topPurchasedItemsResult = mysqli_query($link, $topPurchasedItemsQuery);
-
-            while ($row = mysqli_fetch_assoc($topPurchasedItemsResult)) {
-                echo "['{$row['item_name']}', {$row['total_quantity']}],";
-            }
-            ?>
+            ...rows
         ]);
 
         const options = {
@@ -119,114 +186,28 @@ $menuItemSalesResult = mysqli_query($link, $menuItemSalesQuery);
                 fontSize: 20,
                 bold: true
             },
-            title: 'Top 10 Most Purchased Items - <?php echo date('F Y'); ?>',
+            title,
             is3D: true
         };
 
-        const chart = new google.visualization.PieChart(document.getElementById('mostPurchased'));
+        const chart = new google.visualization.PieChart(chartHost);
         chart.draw(data, options);
+    }
+
+    function mostPurchasedChart() {
+        drawPieChart('mostPurchased', `Top 10 Most Purchased Items - ${reportingMonthLabel}`, allItemsChartRows);
     }
 
     function mostPurchasedDrinksChart() {
-        const data = google.visualization.arrayToDataTable([
-            ['Item Name', 'Total Quantity'],
-            <?php
-            $topPurchasedDrinksQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS total_quantity
-                                        FROM Bill_Items
-                                        INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
-                                        INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                                        WHERE Bills.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
-                                          AND Menu.item_category = 'Drinks'
-                                        GROUP BY Menu.item_name
-                                        ORDER BY total_quantity DESC
-                                        LIMIT 10";
-            $topPurchasedDrinksResult = mysqli_query($link, $topPurchasedDrinksQuery);
-
-            while ($row = mysqli_fetch_assoc($topPurchasedDrinksResult)) {
-                echo "['{$row['item_name']}', {$row['total_quantity']}],";
-            }
-            ?>
-        ]);
-
-        const options = {
-            titleTextStyle: {
-                fontSize: 20,
-                bold: true
-            },
-            title: 'Top 10 Most Purchased Drinks - <?php echo date('F Y'); ?>',
-            is3D: true
-        };
-
-        const chart = new google.visualization.PieChart(document.getElementById('mostPurchasedDrinks'));
-        chart.draw(data, options);
+        drawPieChart('mostPurchasedDrinks', `Top 10 Most Purchased Drinks - ${reportingMonthLabel}`, drinksChartRows);
     }
 
     function mostPurchasedMainChart() {
-        const data = google.visualization.arrayToDataTable([
-            ['Item Name', 'Total Quantity'],
-            <?php
-            $topPurchasedMainDishesQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS total_quantity
-                                            FROM Bill_Items
-                                            INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
-                                            INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                                            WHERE Bills.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
-                                              AND Menu.item_category = 'Main Dishes'
-                                            GROUP BY Menu.item_name
-                                            ORDER BY total_quantity DESC
-                                            LIMIT 10";
-            $topPurchasedMainDishesResult = mysqli_query($link, $topPurchasedMainDishesQuery);
-
-            while ($row = mysqli_fetch_assoc($topPurchasedMainDishesResult)) {
-                echo "['{$row['item_name']}', {$row['total_quantity']}],";
-            }
-            ?>
-        ]);
-
-        const options = {
-            titleTextStyle: {
-                fontSize: 20,
-                bold: true
-            },
-            title: 'Top 10 Most Purchased Main Dishes - <?php echo date('F Y'); ?>',
-            is3D: true
-        };
-
-        const chart = new google.visualization.PieChart(document.getElementById('mostPurchasedMain'));
-        chart.draw(data, options);
+        drawPieChart('mostPurchasedMain', `Top 10 Most Purchased Main Dishes - ${reportingMonthLabel}`, mainItemsChartRows);
     }
 
     function mostPurchasedSideChart() {
-        const data = google.visualization.arrayToDataTable([
-            ['Item Name', 'Total Quantity'],
-            <?php
-            $topPurchasedSideSnacksQuery = "SELECT Menu.item_name, SUM(Bill_Items.quantity) AS total_quantity
-                                            FROM Bill_Items
-                                            INNER JOIN Menu ON Bill_Items.item_id = Menu.item_id
-                                            INNER JOIN Bills ON Bill_Items.bill_id = Bills.bill_id
-                                            WHERE Bills.bill_time BETWEEN '$currentMonthStart 00:00:00' AND '$currentMonthEnd 23:59:59'
-                                              AND Menu.item_category = 'Side Snacks'
-                                            GROUP BY Menu.item_name
-                                            ORDER BY total_quantity DESC
-                                            LIMIT 10";
-            $topPurchasedSideSnacksResult = mysqli_query($link, $topPurchasedSideSnacksQuery);
-
-            while ($row = mysqli_fetch_assoc($topPurchasedSideSnacksResult)) {
-                echo "['{$row['item_name']}', {$row['total_quantity']}],";
-            }
-            ?>
-        ]);
-
-        const options = {
-            titleTextStyle: {
-                fontSize: 20,
-                bold: true
-            },
-            title: 'Top 10 Most Purchased Side Snacks - <?php echo date('F Y'); ?>',
-            is3D: true
-        };
-
-        const chart = new google.visualization.PieChart(document.getElementById('mostPurchasedSide'));
-        chart.draw(data, options);
+        drawPieChart('mostPurchasedSide', `Top 10 Most Purchased Side Snacks - ${reportingMonthLabel}`, sideItemsChartRows);
     }
 </script>
 
